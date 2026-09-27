@@ -1,3 +1,5 @@
+<p align="center"><img src="AppIcon-preview.png" width="128" alt="Tama app icon"></p>
+
 # Tama for Mac ✨
 
 > **Supercharged Dynamic Island for macOS** — Native Swift & SwiftUI implementation inspired by [getdroppy.app](https://getdroppy.app).
@@ -8,6 +10,26 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/ntb1nh)
 
 Tama turns the hardware notch (or a floating Dynamic Island pill on notchless Macs) into a **shelf**: at rest the notch only grows two small wings — album art and a music wave — and when opened it unfolds into one page at a time (Player, Tray, Widgets, Calendar), switched by a floating lane pill underneath. The clipboard lives in its own shelf docked to the bottom of the screen.
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="docs/images/tray.png" width="640" alt="Tray page: drop zone for files, with the lane pill underneath">
+  <br><sub><b>Tray</b> — drop files on the notch to hold them; the lane pill below switches pages</sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/calendar.png" width="640" alt="Calendar page: month grid and agenda">
+  <br><sub><b>Calendar</b> — month grid, agenda and reminders from your calendars</sub>
+</p>
+
+| Pomodoro | Timer |
+| :---: | :---: |
+| <img src="docs/images/pomodoro.png" width="400" alt="Pomodoro focus timer"> | <img src="docs/images/timer.png" width="400" alt="Timer and stopwatch"> |
+| **System Stats** | **Quick Math** |
+| <img src="docs/images/system-stats.png" width="400" alt="System Stats widget: CPU, memory and battery"> | <img src="docs/images/quick-math.png" width="400" alt="Quick Math expression solver"> |
 
 ---
 
