@@ -1,0 +1,40 @@
+Tama 1.0.0 — bản test
+=====================
+
+Yêu cầu: macOS 14 Sonoma trở lên. Chạy được cả Apple Silicon lẫn Intel.
+
+CÀI ĐẶT
+-------
+1. Giải nén Tama-1.0.0.zip, kéo Tama.app vào thư mục /Applications.
+
+2. Mở Terminal, dán đúng dòng này rồi Enter:
+
+       xattr -dr com.apple.quarantine /Applications/Tama.app
+
+   (Bắt buộc. App chưa mua chứng chỉ Apple Developer nên macOS sẽ báo
+   "Tama is damaged and can't be opened" nếu bỏ qua bước này.
+   Lệnh trên chỉ gỡ cờ "tải từ Internet", không sửa gì trong app.)
+
+3. Mở Tama. App không có icon ở Dock — nó là app thanh menu, giao diện
+   nằm ở phần notch trên đỉnh màn hình.
+
+CẤP QUYỀN
+---------
+Vào System Settings › Privacy & Security và bật Tama ở:
+  - Accessibility  (trên macOS 26+ mục này tên là "Device Control and Data Access")
+      → cần cho phím tắt toàn cục, điều khiển nhạc, snap cửa sổ
+  - Screen Recording  → cần cho chụp màn hình / OCR
+  - Automation        → cần để điều khiển Music, Spotify, trình duyệt
+  - Calendars, Reminders, Notifications → nếu muốn dùng trang Calendar
+
+Sau khi bật quyền, thoát hẳn Tama rồi mở lại.
+
+GỠ CÀI ĐẶT
+----------
+  rm -rf /Applications/Tama.app ~/Library/Application\ Support/Tama
+  defaults delete app.tama.macos
+
+BÁO LỖI
+-------
+Bật Settings › About › Diagnostic logging, tái hiện lỗi, rồi bấm
+"Export logs…" và gửi file lại. (Log nằm ở ~/Library/Logs/Tama/.)

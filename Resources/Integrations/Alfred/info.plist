@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>bundleid</key>
+	<string>app.tama.alfred</string>
+	<key>category</key>
+	<string>Productivity</string>
+	<key>connections</key>
+	<dict>
+		<key>5A0D6C1E-7B1B-4F35-9C11-5B2B8E0A1001</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>5A0D6C1E-7B1B-4F35-9C11-5B2B8E0A2001</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+		<key>5A0D6C1E-7B1B-4F35-9C11-5B2B8E0A1002</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>5A0D6C1E-7B1B-4F35-9C11-5B2B8E0A2002</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+	</dict>
+	<key>createdby</key>
+	<string>Tama</string>
+	<key>description</key>
+	<string>Add files to Tama's Shelf or Basket from Alfred's file actions.</string>
+	<key>disabled</key>
+	<false/>
+	<key>name</key>
+	<string>Tama</string>
+	<key>objects</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>acceptsmulti</key>
+				<integer>1</integer>
+				<key>filetypes</key>
+				<array/>
+				<key>name</key>
+				<string>Add to Shelf</string>
+				<key>subtext</key>
+				<string>Put the file on Tama's Shelf</string>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.action</string>
+			<key>uid</key>
+			<string>5A0D6C1E-7B1B-4F35-9C11-5B2B8E0A1001</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>acceptsmulti</key>
+				<integer>1</integer>
+				<key>filetypes</key>
+				<array/>
+				<key>name</key>
+				<string>Add to Basket</string>
+				<key>subtext</key>
+				<string>Put the file in Tama's floating Basket</string>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.trigger.action</string>
+			<key>uid</key>
+			<string>5A0D6C1E-7B1B-4F35-9C11-5B2B8E0A1002</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>0</integer>
+				<key>script</key>
+				<string># Alfred passes several files separated by tabs; Tama splits them.
+url=$(/usr/bin/osascript -l JavaScript -e 'function run(a) { return "tama://add?target=shelf&amp;path=" + encodeURIComponent(a[0]) }' "$1")
+/usr/bin/open "$url"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>5A0D6C1E-7B1B-4F35-9C11-5B2B8E0A2001</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>concurrently</key>
+				<false/>
+				<key>escaping</key>
+				<integer>0</integer>
+				<key>script</key>
+				<string># Alfred passes several files separated by tabs; Tama splits them.
+url=$(/usr/bin/osascript -l JavaScript -e 'function run(a) { return "tama://add?target=basket&amp;path=" + encodeURIComponent(a[0]) }' "$1")
+/usr/bin/open "$url"</string>
+				<key>scriptargtype</key>
+				<integer>1</integer>
+				<key>scriptfile</key>
+				<string></string>
+				<key>type</key>
+				<integer>0</integer>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.script</string>
+			<key>uid</key>
+			<string>5A0D6C1E-7B1B-4F35-9C11-5B2B8E0A2002</string>
+			<key>version</key>
+			<integer>2</integer>
+		</dict>
+	</array>
+	<key>readme</key>
+	<string>File actions for Tama. Select files in Alfred (or Alfred's file navigation), open the actions panel, and choose Add to Shelf or Add to Basket. Needs Tama running; it uses the tama:// URL scheme:
+
+tama://add?target=shelf&amp;path=/path/to/file
+tama://add?target=basket&amp;path=/path/to/file
+tama://show?target=shelf|basket|clipboard</string>
+	<key>uidata</key>
+	<dict>
+		<key>5A0D6C1E-7B1B-4F35-9C11-5B2B8E0A1001</key>
+		<dict>
+			<key>xpos</key>
+			<real>40</real>
+			<key>ypos</key>
+			<real>40</real>
+		</dict>
+		<key>5A0D6C1E-7B1B-4F35-9C11-5B2B8E0A1002</key>
+		<dict>
+			<key>xpos</key>
+			<real>40</real>
+			<key>ypos</key>
+			<real>200</real>
+		</dict>
+		<key>5A0D6C1E-7B1B-4F35-9C11-5B2B8E0A2001</key>
+		<dict>
+			<key>xpos</key>
+			<real>260</real>
+			<key>ypos</key>
+			<real>40</real>
+		</dict>
+		<key>5A0D6C1E-7B1B-4F35-9C11-5B2B8E0A2002</key>
+		<dict>
+			<key>xpos</key>
+			<real>260</real>
+			<key>ypos</key>
+			<real>200</real>
+		</dict>
+	</dict>
+	<key>version</key>
+	<string>1.0</string>
+	<key>webaddress</key>
+	<string></string>
+</dict>
+</plist>

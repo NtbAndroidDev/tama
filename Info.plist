@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>Tama</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>app.tama.macos</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Tama</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>app.tama.macos.url</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>tama</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Tama controls Apple Music, Spotify and the playing browser tab from the notch, opens your terminal app from TermiNotch, and sends iMessage replies from the notification HUD through Messages, and asks System Events to restart, shut down or log out when you pick that in Thunderstorm.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Tama routes an app's sound through itself to set that app's volume in Audio Control, and listens to the sound output to move the live audio visualizer. Nothing is recorded or kept.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Notchface shows a live preview from your camera in the notch, only while you have it open. Nothing is recorded or kept.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Tama shows your upcoming events on the Calendar page of the shelf.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Tama shows your upcoming events on the Calendar page of the shelf.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Tama shows and keeps files from your Desktop that you put in the Tray.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Tama shows and keeps files from Documents that you put in the Tray.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Tama shows and keeps files from Downloads that you put in the Tray.</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Tama shares Tray files with devices on your network when you create a share link, and finds, sends to and receives from nearby LocalSend devices when the LocalSend droplet is on.</string>
+	<key>NSLocationUsageDescription</key>
+	<string>Tama shows the weather where you are on the lock screen. Your location is rounded to about a kilometre before the weather is looked up.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Tama shows the weather where you are on the lock screen. Your location is rounded to about a kilometre before the weather is looked up.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Tama records voice notes for Voice Transcribe, and shows your microphone level in the notch during calls.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Tama lists and adds reminders from the Calendar page of the shelf.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Tama lists and adds reminders from the Calendar page of the shelf.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Tama turns your voice notes into text, on your Mac.</string>
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Add to Tama Shelf</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>addToShelf</string>
+			<key>NSPortName</key>
+			<string>Tama</string>
+			<key>NSRequiredContext</key>
+			<dict/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.item</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Add to Tama Basket</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>addToBasket</string>
+			<key>NSPortName</key>
+			<string>Tama</string>
+			<key>NSRequiredContext</key>
+			<dict/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.item</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Extract Text with Tama</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>extractText</string>
+			<key>NSPortName</key>
+			<string>Tama</string>
+			<key>NSRequiredContext</key>
+			<dict/>
+			<key>NSSendFileTypes</key>
+			<array>
+				<string>public.image</string>
+				<string>com.adobe.pdf</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Send to Tama Scratchpad</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>sendToScratchpad</string>
+			<key>NSPortName</key>
+			<string>Tama</string>
+			<key>NSRequiredContext</key>
+			<dict/>
+			<key>NSSendTypes</key>
+			<array>
+				<string>NSStringPboardType</string>
+				<string>public.utf8-plain-text</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -1,0 +1,20 @@
+# SwiftPM / Xcode
+.build/
+.swiftpm/
+*.xcodeproj/
+xcuserdata/
+DerivedData/
+
+# Build output
+Tama.app/
+*.zip
+*.dmg
+
+# Merge leftovers
+*.orig
+
+# macOS
+.DS_Store
+
+# Private reference material
+Droppy_Promo_Technical_Analysis_v2.docx
