@@ -5,6 +5,7 @@ Tama for Mac is being brought to parity with the reference Droppy 14.2.0, one ph
 ## UI/UX pass
 
 **Bugs**
+- The automatic brightness HUD is now off by default. With macOS auto-brightness on, ambient light changes kept popping the HUD up unprompted; turn it on in Settings › HUDs.
 - Dragging the scrubber on a track of unknown length no longer jumps to 0:00, and the length/remaining toggle works for sources that can't seek.
 - Deleting a voice transcript from its context menu now asks first, as the trash button does; it can't be undone.
 - Widget icons no longer sit tilted while rearranging with wiggle off; rearranging with no widgets shows an empty state.

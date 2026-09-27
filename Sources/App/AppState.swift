@@ -948,7 +948,8 @@ public final class AppState: ObservableObject {
         didSet { BetterDisplayService.shared.refresh() }
     }
     /// The brightness HUD also shows when the level changes on its own (ambient light, Control Center).
-    @AppStorage("automaticBrightnessHUD") public var automaticBrightnessHUD: Bool = true {
+    /// Off by default: with auto-brightness on, the panel drifts all day and the HUD kept popping up.
+    @AppStorage("automaticBrightnessHUD") public var automaticBrightnessHUD: Bool = false {
         didSet { BrightnessService.shared.syncAutoWatch() }
     }
     /// Tama takes the keyboard backlight keys and steps the backlight itself.
