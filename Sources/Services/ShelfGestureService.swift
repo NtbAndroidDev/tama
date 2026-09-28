@@ -51,8 +51,8 @@ final class ShelfGestureService {
     /// Returns true when the event was used up by a gesture.
     private func handle(_ event: NSEvent) -> Bool {
         let state = AppState.shared
-        let gestures = state.shelfGestures && state.shelfEnabled
-        let trackSwipe = state.trackSwipe && MediaService.shared.currentTrack.hasTrack
+        let gestures = ShelfSettings.shared.gestures && ShelfSettings.shared.isEnabled
+        let trackSwipe = MediaSettings.shared.trackSwipe && MediaService.shared.currentTrack.hasTrack
         guard gestures || trackSwipe,
               event.window === NotchWindowController.shared.panel,
               event.hasPreciseScrollingDeltas else { return false }
@@ -85,7 +85,7 @@ final class ShelfGestureService {
             fired = true
             firedTrack = !state.isIslandExpanded
             // Standard: fingers moving left skip ahead, like flicking a cover away.
-            let forward = (dx < 0) != state.trackSwipeReversed
+            let forward = (dx < 0) != MediaSettings.shared.trackSwipeReversed
             if forward { MediaService.shared.nextTrack() } else { MediaService.shared.previousTrack() }
             return true
         }
@@ -93,22 +93,22 @@ final class ShelfGestureService {
 
         if !state.isIslandExpanded {
             // Resting notch: fingers moving down open the shelf.
-            guard !state.scrollToChangeVolume, !NSEvent.modifierFlags.contains(.option),
+            guard !HUDSettings.shared.scrollToChangeVolume, !NSEvent.modifierFlags.contains(.option),
                   NotchWindowController.shared.isOverIsland(NSEvent.mouseLocation),
                   dy > Self.openDistance, dy > abs(dx) * 1.5 else { return false }
             fired = true
             DroppyAudio.playTick()
-            state.open(state.defaultShelfPage.page ?? state.shelfPage)
+            state.open(ShelfSettings.shared.defaultPage.page ?? state.shelfPage)
             return true
         }
 
         // The Tray's two stacks take the vertical swipe, which nothing else on
         // the open shelf uses, so it never fights the sideways page swipe.
-        if state.shelfPage == .tray, state.trayTwoStacks,
+        if state.shelfPage == .tray, TraySettings.shared.twoStacks,
            abs(dy) > Self.pageDistance, abs(dy) > abs(dx) * 2 {
             fired = true
             // Fingers moving up bring the next stack in from below.
-            let step = Self.direction(dy < 0, reversed: state.shelfSwipeReversed)
+            let step = Self.direction(dy < 0, reversed: ShelfSettings.shared.swipeReversed)
             let next = min(max(state.activeTrayStack + step, 0), 1)
             guard next != state.activeTrayStack else { return true }
             DroppyAudio.playTick()
@@ -119,7 +119,7 @@ final class ShelfGestureService {
         guard canSwipePages(state), abs(dx) > Self.pageDistance, abs(dx) > abs(dy) * 2 else { return false }
         fired = true
         // Fingers moving left reveal the page to the right, like a Space swipe.
-        state.selectAdjacentPage(Self.direction(dx < 0, reversed: state.shelfSwipeReversed))
+        state.selectAdjacentPage(Self.direction(dx < 0, reversed: ShelfSettings.shared.swipeReversed))
         return true
     }
 

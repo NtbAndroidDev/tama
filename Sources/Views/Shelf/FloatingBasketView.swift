@@ -9,6 +9,8 @@ import UniformTypeIdentifiers
 public struct FloatingBasketView: View {
     let basketID: UUID
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var basketSettings = BasketSettings.shared
+    @ObservedObject private var traySettings = TraySettings.shared
     @State private var isDropTargeted = false
     @State private var isMinimized = false
     @State private var isHovered = false
@@ -45,7 +47,7 @@ public struct FloatingBasketView: View {
 
     /// The files in the bucket on show.
     private var items: [ShelfItem] {
-        guard state.basketSecondBucket else { return allItems }
+        guard basketSettings.secondBucket else { return allItems }
         return allItems.filter { $0.stack == bucket }
     }
 
@@ -310,22 +312,22 @@ public struct FloatingBasketView: View {
                         draggedIDs = Set(picked.map(\.id))
                         return picked.map(\.url)
                     }, surface: .basket, onEnded: { accepted in
-                        guard accepted, state.removeOnDragOut else { return }
+                        guard accepted, traySettings.removeOnDragOut else { return }
                         withAnimation(DS.Motion.respecting(reduceMotion, DS.Motion.fluid)) { state.removeBasketItemsWithUndo(ids: draggedIDs) }
                     }, help: dragHelp)
                 }
             }
             .help(dragHelp)
 
-            if state.basketSecondBucket { bucketPicker }
+            if basketSettings.secondBucket { bucketPicker }
 
             Spacer(minLength: DS.Space.xs)
 
             if !allItems.isEmpty {
-                DroppyIconButton(state.basketLayout == .grid ? "list.bullet" : "square.grid.2x2", size: 22, tone: .tonal,
-                                 help: state.basketLayout == .grid ? "Show as list" : "Show as grid") {
+                DroppyIconButton(basketSettings.layout == .grid ? "list.bullet" : "square.grid.2x2", size: 22, tone: .tonal,
+                                 help: basketSettings.layout == .grid ? "Show as list" : "Show as grid") {
                     withAnimation(DS.Motion.respecting(reduceMotion, DS.Motion.fluid)) {
-                        state.basketLayout = state.basketLayout == .grid ? .list : .grid
+                        basketSettings.layout = basketSettings.layout == .grid ? .list : .grid
                     }
                     DroppyAudio.playTick()
                 }
@@ -357,7 +359,7 @@ public struct FloatingBasketView: View {
                 }
             }
             DroppyIconButton("minus", size: 20, help: "Minimize to a pill") { setMinimized(true) }
-            DroppyIconButton("xmark", size: 20, help: allItems.isEmpty || state.basketMode == .single ? "Close" : "Put away (files are kept)") {
+            DroppyIconButton("xmark", size: 20, help: allItems.isEmpty || basketSettings.mode == .single ? "Close" : "Put away (files are kept)") {
                 state.closeBasket(basketID)
                 DroppyAudio.playTick()
             }
@@ -411,7 +413,7 @@ public struct FloatingBasketView: View {
                     title: bucket == 1 ? "Second bucket is empty" : "Drop files here",
                     compact: true
                 )
-            } else if state.basketLayout == .grid {
+            } else if basketSettings.layout == .grid {
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: DS.Space.md)], spacing: DS.Space.lg) {
                         ForEach(items) { item in
@@ -490,7 +492,7 @@ public struct FloatingBasketView: View {
                 },
                 menu: { menu(for: item) },
                 onDragEnded: { accepted in
-                    guard accepted, state.removeOnDragOut else { return }
+                    guard accepted, traySettings.removeOnDragOut else { return }
                     state.removeBasketItemsWithUndo(ids: draggedIDs)
                 },
                 help: "\(item.name) · \(item.formattedSize)"

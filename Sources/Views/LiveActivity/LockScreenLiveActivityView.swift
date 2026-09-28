@@ -8,6 +8,7 @@ public struct LockScreenLiveActivityView: View {
     // the service's once-a-second countdown would redraw this whole view.
     @ObservedObject private var systemMonitorUpdates = SystemMonitorService.shared
     @ObservedObject var state = AppState.shared
+    @ObservedObject private var pomodoroSettings = PomodoroSettings.shared
     @ObservedObject private var pomodoroClock = PomodoroClock.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovered = false
@@ -378,7 +379,7 @@ public struct LockScreenLiveActivityView: View {
         switch (state.isPomodoroActive, state.pomodoroHasStarted, state.isPomodoroWorkCycle) {
         case (true, _, true): "Focus timer is running in the notch."
         case (true, _, false): "Break is running. Step away for a bit."
-        case (false, false, _): "Press Start to begin a \(state.pomodoroWorkMinutes)-minute focus session."
+        case (false, false, _): "Press Start to begin a \(pomodoroSettings.workMinutes)-minute focus session."
         case (false, true, true): "Focus paused. Press Start to resume."
         case (false, true, false): "Break paused. Press Start to resume."
         }

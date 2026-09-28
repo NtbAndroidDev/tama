@@ -76,7 +76,7 @@ final class LyricsWindowController {
 
     /// "Keep lyrics window on top": above everything, or a normal window.
     func applyPin() {
-        panel?.level = AppState.shared.lyricsWindowPinned ? .floating : .normal
+        panel?.level = MediaSettings.shared.lyricsWindowPinned ? .floating : .normal
     }
 
     /// "Bring floating lyrics to front".
@@ -88,6 +88,7 @@ final class LyricsWindowController {
 
 private struct FloatingLyricsView: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var mediaSettings = MediaSettings.shared
     @ObservedObject private var media = MediaService.shared
     @ObservedObject private var lyrics = LyricsService.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -106,10 +107,10 @@ private struct FloatingLyricsView: View {
                     .font(.system(size: 12.5, weight: .bold))
                     .foregroundStyle(.white)
                 Spacer()
-                DroppyIconButton(state.lyricsWindowPinned ? "pin.fill" : "pin", size: 24, tone: .tonal,
-                                 isActive: state.lyricsWindowPinned,
-                                 help: state.lyricsWindowPinned ? "Stop keeping lyrics window on top" : "Keep lyrics window on top") {
-                    state.lyricsWindowPinned.toggle()
+                DroppyIconButton(mediaSettings.lyricsWindowPinned ? "pin.fill" : "pin", size: 24, tone: .tonal,
+                                 isActive: mediaSettings.lyricsWindowPinned,
+                                 help: mediaSettings.lyricsWindowPinned ? "Stop keeping lyrics window on top" : "Keep lyrics window on top") {
+                    mediaSettings.lyricsWindowPinned.toggle()
                     LyricsWindowController.shared.applyPin()
                     DroppyAudio.playTick()
                 }

@@ -165,9 +165,9 @@ final class CaptureEditorModel: ObservableObject {
     @Published var tool: CaptureTool = .arrow {
         didSet { toolChanged(from: oldValue) }
     }
-    @Published var color: RGBAColor = RGBAColor.named(AppState.shared.captureAnnotationColor)
+    @Published var color: RGBAColor = RGBAColor.named(CaptureSettings.shared.annotationColor)
     @Published var strokeSize: StrokeSize = .medium
-    @Published var font: CaptureFont = CaptureFont.named(AppState.shared.captureEditorFont)
+    @Published var font: CaptureFont = CaptureFont.named(CaptureSettings.shared.editorFont)
     /// Screen points per screenshot point; nil fits the window.
     @Published var zoom: CGFloat?
     @Published var showsShortcuts = false
@@ -247,10 +247,10 @@ final class CaptureEditorModel: ObservableObject {
         self.delivery = delivery
         if !Self.backdropInitialized {
             Self.backdropInitialized = true
-            Self.lastBackdrop.cornerRadius = CGFloat(AppState.shared.screenshotRadius)
+            Self.lastBackdrop.cornerRadius = CGFloat(CaptureSettings.shared.screenshotRadius)
         }
         self.backdrop = Self.lastBackdrop
-        if AppState.shared.captureEditorDefaultZoom == .native { zoom = 1 }
+        if CaptureSettings.shared.editorDefaultZoom == .native { zoom = 1 }
         let stem = document.sourceURL?.deletingPathExtension().lastPathComponent
         if let stem, !stem.isEmpty {
             fileStem = stem.hasSuffix(" edited") ? stem : "\(stem) edited"

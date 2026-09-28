@@ -253,7 +253,7 @@ public final class MeetingControlService: ObservableObject {
     /// the app's own button may still show it as on. During a detected call
     /// the call HUD shows the mute instead.
     private func updateActivity() {
-        if isDropletEnabled, isMicMuted, isMicInUse, !(callState.isInCall && AppState.shared.meetingCallHUD) {
+        if isDropletEnabled, isMicMuted, isMicInUse, !(callState.isInCall && MeetingSettings.shared.callHUD) {
             LiveActivityCenter.shared.post(LiveActivity(
                 id: "meetingMic", icon: "mic.slash.fill", tint: DS.Palette.danger,
                 trailing: .text("Muted"), priority: .ambient, label: "Microphone muted"
@@ -345,8 +345,7 @@ public final class MeetingControlService: ObservableObject {
         // The controls follow the app you're actually in a call with.
         if available.contains(where: { $0.id == app.id }) { targetID = app.id }
         setCallState(.inCall(appID: app.id, since: Date()))
-        let state = AppState.shared
-        if state.meetingPauseMedia, state.meetingPauseTrigger == .callStarts { pauseMediaForMeeting() }
+        if MeetingSettings.shared.pauseMedia, MeetingSettings.shared.pauseTrigger == .callStarts { pauseMediaForMeeting() }
         updatePauseForMic()
         startCameraWatch()
     }
@@ -361,12 +360,12 @@ public final class MeetingControlService: ObservableObject {
 
     /// The call HUD in the resting notch: green phone, elapsed time, mic bars.
     func refreshCallActivity() {
-        guard case let .inCall(appID, since) = callState, AppState.shared.meetingCallHUD, isDropletEnabled else {
+        guard case let .inCall(appID, since) = callState, MeetingSettings.shared.callHUD, isDropletEnabled else {
             LiveActivityCenter.shared.end("meetingCall")
             MicLevelMeter.shared.stop()
             return
         }
-        if AppState.shared.meetingMicLevel, !isMicMuted {
+        if MeetingSettings.shared.micLevel, !isMicMuted {
             if #available(macOS 14.2, *) { MicLevelMeter.shared.start() }
         } else {
             MicLevelMeter.shared.stop()
@@ -374,7 +373,7 @@ public final class MeetingControlService: ObservableObject {
         let name = MeetingApp.all.first { $0.id == appID }?.name ?? "Call"
         LiveActivityCenter.shared.post(LiveActivity(
             id: "meetingCall", icon: "phone.fill", tint: DS.Palette.success,
-            trailing: AppState.shared.meetingMicLevel ? .micLevel(muted: isMicMuted) : (isMicMuted ? .text("Muted") : .none),
+            trailing: MeetingSettings.shared.micLevel ? .micLevel(muted: isMicMuted) : (isMicMuted ? .text("Muted") : .none),
             priority: .urgent,
             label: "In a \(name) call\(isMicMuted ? ", microphone muted" : "")",
             detail: .elapsed(since: since)
@@ -384,8 +383,7 @@ public final class MeetingControlService: ObservableObject {
     // MARK: Media around calls
 
     private func updatePauseForMic() {
-        let state = AppState.shared
-        guard callState.isInCall, state.meetingPauseMedia, state.meetingPauseTrigger == .micUnmuted else { return }
+        guard callState.isInCall, MeetingSettings.shared.pauseMedia, MeetingSettings.shared.pauseTrigger == .micUnmuted else { return }
         if isMicMuted {
             resumeMediaAfterMeeting()
         } else {
@@ -398,9 +396,9 @@ public final class MeetingControlService: ObservableObject {
         let media = MediaService.shared
         guard media.currentTrack.isPlaying, !pausedMedia else { return }
         media.togglePlayPause()
-        pausedMedia = AppState.shared.meetingResumeMedia
+        pausedMedia = MeetingSettings.shared.resumeMedia
         AppState.shared.showNotification(appName: "Meetings", title: "Media paused for meeting",
-                                         message: AppState.shared.meetingResumeMedia ? "It resumes when the call ends." : media.currentTrack.title,
+                                         message: MeetingSettings.shared.resumeMedia ? "It resumes when the call ends." : media.currentTrack.title,
                                          icon: "pause.fill", duration: 2.5)
     }
 

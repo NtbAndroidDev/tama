@@ -147,12 +147,11 @@ public final class WeatherService: NSObject, ObservableObject {
 
     /// Settings › Droplets › Weather › Refresh interval.
     private var refreshInterval: TimeInterval {
-        TimeInterval(max(AppState.shared.weatherRefreshMinutes, 5)) * 60
+        TimeInterval(max(WeatherSettings.shared.refreshMinutes, 5)) * 60
     }
 
     private var usesFixedPlace: Bool {
-        let state = AppState.shared
-        return state.weatherLocationMode == .fixed && !state.weatherPlaceName.isEmpty
+        return WeatherSettings.shared.locationMode == .fixed && !WeatherSettings.shared.placeName.isEmpty
     }
 
     private override init() {
@@ -172,7 +171,7 @@ public final class WeatherService: NSObject, ObservableObject {
 
     /// "Local" for this Mac's location, else the fixed place's name.
     public var placeTitle: String {
-        usesFixedPlace ? AppState.shared.weatherPlaceName : "Local"
+        usesFixedPlace ? WeatherSettings.shared.placeName : "Local"
     }
     public var isLocal: Bool { !usesFixedPlace }
 
@@ -227,9 +226,8 @@ public final class WeatherService: NSObject, ObservableObject {
         guard isRunning else { return }
         if !force, let lastFetch, Date().timeIntervalSince(lastFetch) < refreshInterval - 60 { return }
         if usesFixedPlace {
-            let state = AppState.shared
-            latitude = state.weatherPlaceLatitude
-            longitude = state.weatherPlaceLongitude
+            latitude = WeatherSettings.shared.placeLatitude
+            longitude = WeatherSettings.shared.placeLongitude
             Task { await fetch() }
             return
         }
@@ -258,7 +256,7 @@ public final class WeatherService: NSObject, ObservableObject {
     private func fetch() async {
         guard let latitude, let longitude else { return }
         let coords = "latitude=\(latitude)&longitude=\(longitude)"
-        let wantsAQI = AppState.shared.weatherShowsAQI
+        let wantsAQI = WeatherSettings.shared.showsAQI
         guard let forecastURL = URL(string: "https://api.open-meteo.com/v1/forecast?\(coords)&current=temperature_2m,weather_code,is_day&hourly=temperature_2m,weather_code,is_day&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min&forecast_days=2&timezone=auto&timeformat=unixtime"),
               let airURL = URL(string: "https://air-quality-api.open-meteo.com/v1/air-quality?\(coords)&current=us_aqi")
         else { return }
@@ -321,12 +319,11 @@ public final class WeatherService: NSObject, ObservableObject {
 
     /// Settings › Weather location: a fixed place picked from the search.
     public func choose(_ place: WeatherPlace) {
-        let state = AppState.shared
-        state.weatherPlaceName = place.name
-        state.weatherPlaceLatitude = (place.latitude * 100).rounded() / 100
-        state.weatherPlaceLongitude = (place.longitude * 100).rounded() / 100
-        if state.weatherLocationMode != .fixed {
-            state.weatherLocationMode = .fixed
+        WeatherSettings.shared.placeName = place.name
+        WeatherSettings.shared.placeLatitude = (place.latitude * 100).rounded() / 100
+        WeatherSettings.shared.placeLongitude = (place.longitude * 100).rounded() / 100
+        if WeatherSettings.shared.locationMode != .fixed {
+            WeatherSettings.shared.locationMode = .fixed
         } else {
             locationSettingsChanged()
         }

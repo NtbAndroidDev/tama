@@ -122,21 +122,21 @@ import Testing
 @Suite struct BasketAutoHideWatchTests {
     @Test func theCountdownOnlyRunsWhileABasketIsOut() {
         let state = AppState.shared
-        let autoHide = state.basketAutoHide
+        let autoHide = BasketSettings.shared.autoHide
         let visible = state.isBasketVisible
         defer {
-            state.basketAutoHide = autoHide
+            BasketSettings.shared.autoHide = autoHide
             state.isBasketVisible = visible
             JiggleService.shared.syncIdleWatch()
         }
 
-        state.basketAutoHide = false
+        BasketSettings.shared.autoHide = false
         state.isBasketVisible = false
         JiggleService.shared.syncIdleWatch()
         #expect(!JiggleService.shared.isWatchingIdle)
 
         // The setting on its own isn't enough: there has to be a Basket.
-        state.basketAutoHide = true
+        BasketSettings.shared.autoHide = true
         JiggleService.shared.syncIdleWatch()
         #expect(!JiggleService.shared.isWatchingIdle)
 
@@ -145,7 +145,7 @@ import Testing
         #expect(JiggleService.shared.isWatchingIdle)
 
         // And switching auto-hide off while it's out disarms it again.
-        state.basketAutoHide = false
+        BasketSettings.shared.autoHide = false
         JiggleService.shared.syncIdleWatch()
         #expect(!JiggleService.shared.isWatchingIdle)
     }

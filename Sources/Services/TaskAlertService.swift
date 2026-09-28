@@ -52,13 +52,12 @@ public final class TaskAlertService {
 
     private func handle(events: [AgendaEntry], now: Date) {
         guard started else { return }
-        let state = AppState.shared
         let calendar = CalendarService.shared
 
         // Event under way: a ring filling as it runs; otherwise the next one.
         let current = events.filter { ($0.start ?? .distantFuture) <= now }
             .min { ($0.end ?? .distantFuture) < ($1.end ?? .distantFuture) }
-        if state.tasksEventRing, let current, let start = current.start, let end = current.end, end > start {
+        if CalendarSettings.shared.eventRing, let current, let start = current.start, let end = current.end, end > start {
             let fraction = now.timeIntervalSince(start) / end.timeIntervalSince(start)
             let left = Int((end.timeIntervalSince(now) / 60).rounded(.up))
             LiveActivityCenter.shared.post(LiveActivity(
@@ -70,7 +69,7 @@ public final class TaskAlertService {
             LiveActivityCenter.shared.end("eventProgress")
         }
 
-        if state.tasksNextEventWing, current == nil || !state.tasksEventRing,
+        if CalendarSettings.shared.nextEventWing, current == nil || !CalendarSettings.shared.eventRing,
            let next = events.filter({ ($0.start ?? .distantPast) > now }).min(by: { $0.start! < $1.start! }),
            let start = next.start {
             LiveActivityCenter.shared.post(LiveActivity(
@@ -78,7 +77,7 @@ public final class TaskAlertService {
                 trailing: .text(start.formatted(date: .omitted, time: .shortened)), priority: .ambient,
                 label: "Next: \(next.title) at \(start.formatted(date: .omitted, time: .shortened))"
             ))
-        } else if !state.tasksNextEventWing || current != nil {
+        } else if !CalendarSettings.shared.nextEventWing || current != nil {
             LiveActivityCenter.shared.end("nextEvent")
         }
 
@@ -86,9 +85,9 @@ public final class TaskAlertService {
             LiveActivityCenter.shared.end("taskDue")
             return
         }
-        let lead = TimeInterval(max(state.tasksHeadsUpMinutes, 0) * 60)
-        let wantsAlerts = state.tasksDueAlerts
-        let wantsNextTask = state.tasksNextEventWing && events.isEmpty
+        let lead = TimeInterval(max(CalendarSettings.shared.headsUpMinutes, 0) * 60)
+        let wantsAlerts = CalendarSettings.shared.dueAlerts
+        let wantsNextTask = CalendarSettings.shared.nextEventWing && events.isEmpty
         guard wantsAlerts || wantsNextTask else {
             LiveActivityCenter.shared.end("taskDue")
             return
@@ -152,6 +151,6 @@ public final class TaskAlertService {
         ))
         state.showNotification(appName: "Tasks", title: task.title, message: "Due now", icon: "checklist",
                                actionTitle: "Complete", action: { CalendarService.shared.complete(task) }, duration: 8)
-        if state.tasksDueChime { NSSound(named: "Glass")?.play() }
+        if CalendarSettings.shared.dueChime { NSSound(named: "Glass")?.play() }
     }
 }

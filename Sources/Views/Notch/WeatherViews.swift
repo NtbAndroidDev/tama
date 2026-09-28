@@ -10,6 +10,7 @@ struct WeatherGlassCard: View {
 
     @ObservedObject private var weather = WeatherService.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var weatherSettings = WeatherSettings.shared
 
     private var radius: CGFloat { isLarge ? 26 : 22 }
 
@@ -30,7 +31,7 @@ struct WeatherGlassCard: View {
         }
         .padding(isLarge ? 16 : 13)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(WeatherCardBackground(style: state.weatherStyle, snapshot: weather.snapshot, radius: radius))
+        .background(WeatherCardBackground(style: weatherSettings.style, snapshot: weather.snapshot, radius: radius))
         .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         .environment(\.colorScheme, .dark)
     }
@@ -100,8 +101,8 @@ struct WeatherGlassCard: View {
     /// Settings › Weather › AQI and Sunrise & sunset.
     @ViewBuilder
     private func extras(_ now: WeatherSnapshot) -> some View {
-        let aqi = state.weatherShowsAQI ? now.aqi : nil
-        let sun = state.weatherShowsSun ? now.nextSunEvent() : nil
+        let aqi = weatherSettings.showsAQI ? now.aqi : nil
+        let sun = weatherSettings.showsSun ? now.nextSunEvent() : nil
         if aqi != nil || sun != nil {
             HStack(spacing: 6) {
                 if let aqi {
@@ -187,15 +188,16 @@ private struct WeatherCardBackground: View {
 struct WeatherConsoleView: View {
     @ObservedObject private var weather = WeatherService.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var weatherSettings = WeatherSettings.shared
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             WeatherGlassCard(isLarge: true)
                 .frame(width: 300, height: 190)
             VStack(alignment: .leading, spacing: 10) {
-                DroppyKeyValue(key: "Location", value: state.weatherLocationMode == .automatic ? "Automatic" : weather.placeTitle)
+                DroppyKeyValue(key: "Location", value: weatherSettings.locationMode == .automatic ? "Automatic" : weather.placeTitle)
                 DroppyKeyValue(key: "Refreshes", value: "Every \(refreshText)")
-                if let now = weather.snapshot, let aqi = now.aqi, state.weatherShowsAQI {
+                if let now = weather.snapshot, let aqi = now.aqi, weatherSettings.showsAQI {
                     DroppyKeyValue(key: "Air quality", value: now.aqiLabel.map { "\(aqi) · \($0)" } ?? "\(aqi)")
                 }
                 Spacer(minLength: 0)
@@ -220,7 +222,7 @@ struct WeatherConsoleView: View {
     }
 
     private var refreshText: String {
-        let minutes = state.weatherRefreshMinutes
+        let minutes = weatherSettings.refreshMinutes
         return minutes % 60 == 0 ? "\(minutes / 60) h" : "\(minutes) min"
     }
 }

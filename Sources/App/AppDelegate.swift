@@ -50,7 +50,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         DesktopSliderController.shared.sync()
         BrightnessService.shared.syncAutoWatch()
         BetterDisplayService.shared.refresh()
-        DownloadWatcher.shared.apply(enabled: AppState.shared.showDownloadActivity)
+        DownloadWatcher.shared.apply(enabled: HUDSettings.shared.showDownloadActivity)
         // Keystroke sounds and per-app volumes follow their Droplets' settings.
         MecheyService.shared.start()
         AppAudioService.shared.start()
@@ -65,13 +65,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // LocalSend's receiver and discovery follow its Droplet.
         LocalSendService.shared.start()
         // Settings › Accessibility › Show tooltips.
-        DroppyDiagnostics.applyTooltipPreference(AppState.shared.showTooltips)
+        DroppyDiagnostics.applyTooltipPreference(GeneralSettings.shared.showTooltips)
         DroppyLog.info("App", "Launched \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")")
         
         // Menu bar item and Dock icon follow Settings, live.
         applyPresenceSettings()
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
-            .map { _ in (AppState.shared.showInMenuBar, AppState.shared.showInDock) }
+            .map { _ in (GeneralSettings.shared.showInMenuBar, GeneralSettings.shared.showInDock) }
             .removeDuplicates { $0 == $1 }
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.applyPresenceSettings() }
@@ -123,14 +123,13 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func applyPresenceSettings() {
-        let state = AppState.shared
-        if state.showInMenuBar, statusItem == nil {
+        if GeneralSettings.shared.showInMenuBar, statusItem == nil {
             setupStatusItem()
-        } else if !state.showInMenuBar, let item = statusItem {
+        } else if !GeneralSettings.shared.showInMenuBar, let item = statusItem {
             NSStatusBar.system.removeStatusItem(item)
             statusItem = nil
         }
-        let policy: NSApplication.ActivationPolicy = state.showInDock ? .regular : .accessory
+        let policy: NSApplication.ActivationPolicy = GeneralSettings.shared.showInDock ? .regular : .accessory
         if NSApp.activationPolicy() != policy { NSApp.setActivationPolicy(policy) }
     }
 
@@ -283,7 +282,7 @@ extension AppDelegate: NSMenuItemValidation {
             menuItem.state = state.isBasketVisible ? .on : .off
         case #selector(openClipboard):
             // Settings › Clipboard › Clipboard locations › Menu bar.
-            menuItem.isHidden = !(state.clipboardEnabled && state.clipboardInMenuBar)
+            menuItem.isHidden = !(ClipboardSettings.shared.isEnabled && ClipboardSettings.shared.inMenuBar)
         case #selector(revealIsland):
             // Only there while the island is hidden from its right-click menu.
             menuItem.isHidden = !state.isIslandHidden

@@ -4,7 +4,7 @@ import SwiftUI
 // Anchors are "droplet.localSend.<option>", indexed in SettingsSearch.
 
 struct LocalSendDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var localSendSettings = LocalSendSettings.shared
     @ObservedObject private var service = LocalSendService.shared
     @State private var name = ""
     /// The favorite waiting on "Forget" to be confirmed.
@@ -17,12 +17,13 @@ struct LocalSendDropletSettings: View {
                     TextField("Device name", text: $name, prompt: Text(LocalSendService.macName))
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 200)
-                        .onSubmit { state.localSendDeviceName = name.trimmingCharacters(in: .whitespaces) }
-                    Button("Reset to this Mac's name") {
+                        .onSubmit { localSendSettings.deviceName = name.trimmingCharacters(in: .whitespaces) }
+                    Button("Reset") {
                         name = ""
-                        state.localSendDeviceName = ""
+                        localSendSettings.deviceName = ""
                     }
-                    .disabled(state.localSendDeviceName.isEmpty && name.isEmpty)
+                    .disabled(localSendSettings.deviceName.isEmpty && name.isEmpty)
+                    .help("Use this Mac's name")
                 }
             } label: {
                 HStack(spacing: 6) {
@@ -31,33 +32,36 @@ struct LocalSendDropletSettings: View {
                 }
             }
             .settingsAnchor("droplet.localSend.name")
-            .onAppear { name = state.localSendDeviceName }
+            .onAppear { name = localSendSettings.deviceName }
             // Saved on Return, or when the page closes; not per keystroke,
             // since each change is announced to the network.
             .onDisappear {
                 let trimmed = name.trimmingCharacters(in: .whitespaces)
-                if trimmed != state.localSendDeviceName { state.localSendDeviceName = trimmed }
+                if trimmed != localSendSettings.deviceName { localSendSettings.deviceName = trimmed }
             }
             InfoToggle("Visible to other devices",
                        info: "Announcing this Mac on the local network, and answering other devices' scans. Off, this Mac can still send and find devices, but others won't list it.",
-                       isOn: $state.localSendVisible)
+                       isOn: $localSendSettings.isVisible)
                 .settingsAnchor("droplet.localSend.visible")
-            Picker(selection: $state.localSendReceiveMode) {
+            Picker(selection: $localSendSettings.receiveMode) {
                 ForEach(LocalSendReceiveMode.allCases) { Text($0.title).tag($0) }
             } label: {
                 HStack(spacing: 6) {
                     Text("Receive from")
-                    InfoButton(state.localSendReceiveMode.detail)
+                    InfoButton(localSendSettings.receiveMode.detail)
                 }
             }
             .settingsAnchor("droplet.localSend.receive")
             InfoToggle("Quick Save for favorites",
                        info: "Transfers from your favorite devices are saved right away, without the Incoming requests prompt.",
-                       isOn: $state.localSendQuickSaveFavorites)
-                .disabled(state.localSendReceiveMode == .off)
+                       isOn: $localSendSettings.quickSaveFavorites)
+                .disabled(localSendSettings.receiveMode == .off)
                 .settingsAnchor("droplet.localSend.quickSave")
+            if localSendSettings.receiveMode == .off {
+                Text("Receiving is off.").font(.caption).foregroundStyle(.secondary)
+            }
             LabeledContent {
-                TextField("None", text: $state.localSendPIN)
+                TextField("None", text: $localSendSettings.pin)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 110)
             } label: {
@@ -70,7 +74,7 @@ struct LocalSendDropletSettings: View {
         } header: {
             Text("Receiving")
         } footer: {
-            Text(state.localSendReceiveMode.detail).font(.caption).foregroundStyle(.secondary)
+            Text(localSendSettings.receiveMode.detail).font(.caption).foregroundStyle(.secondary)
         }
 
         Section {
@@ -80,8 +84,8 @@ struct LocalSendDropletSettings: View {
                         .foregroundStyle(.secondary)
                         .help(service.saveFolder.path)
                     Button("Choose…") { chooseFolder() }
-                    if !state.localSendSaveFolder.isEmpty {
-                        Button("Downloads") { state.localSendSaveFolder = "" }
+                    if !localSendSettings.saveFolder.isEmpty {
+                        Button("Downloads") { localSendSettings.saveFolder = "" }
                     }
                 }
             } label: {
@@ -93,7 +97,7 @@ struct LocalSendDropletSettings: View {
             .settingsAnchor("droplet.localSend.folder")
             InfoToggle("Add received files to the shelf",
                        info: "Finished transfers also appear on your notch shelf, in the Tray.",
-                       isOn: $state.localSendAddToShelf)
+                       isOn: $localSendSettings.addToShelf)
                 .settingsAnchor("droplet.localSend.shelf")
         } header: {
             Text("Files")
@@ -129,7 +133,7 @@ struct LocalSendDropletSettings: View {
         Section {
             InfoToggle("Encrypted (HTTPS)",
                        info: "Transfers use HTTPS with a certificate made on this Mac and kept in your login keychain as \"Tama LocalSend TLS\". Off, they use plain HTTP, which older or web clients may need.",
-                       isOn: $state.localSendEncrypted)
+                       isOn: $localSendSettings.isEncrypted)
                 .settingsAnchor("droplet.localSend.encrypted")
             LabeledContent("Fingerprint") {
                 Text(service.fingerprint.map { String($0.prefix(23)) + "…" } ?? "Fingerprint appears once the receiver runs.")
@@ -208,7 +212,7 @@ struct LocalSendDropletSettings: View {
         panel.prompt = "Choose"
         panel.message = "Choose where received files are saved"
         panel.directoryURL = service.saveFolder
-        if panel.runModal() == .OK, let url = panel.url { state.localSendSaveFolder = url.path }
+        if panel.runModal() == .OK, let url = panel.url { localSendSettings.saveFolder = url.path }
     }
 }
 

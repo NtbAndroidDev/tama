@@ -18,7 +18,7 @@ extension AppState {
         let unique = items.filter { seen.insert($0.url.standardizedFileURL).inserted }
         var items = keepingTemporaryFiles(unique)
         // Settings › Shelf › Two Stacks: new files land in the stack on show.
-        if trayTwoStacks {
+        if TraySettings.shared.twoStacks {
             items = items.map { var item = $0; item.stack = activeTrayStack; return item }
         }
         // The same file dropped twice moves to the front instead of doubling up,
@@ -36,14 +36,14 @@ extension AppState {
             shelfItems.removeAll { incoming.contains($0.url.standardizedFileURL) }
             shelfItems.insert(contentsOf: items, at: 0)
         }
-        if hapticFeedback, !items.isEmpty {
+        if GeneralSettings.shared.hapticFeedback, !items.isEmpty {
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
         }
         trimTray(reason: "Tray is full")
         measureFolderSizes(of: items)
         if reveal {
             open(.tray)
-        } else if showFileTrayHUD, !isIslandExpanded, !items.isEmpty {
+        } else if HUDSettings.shared.showFileTrayHUD, !isIslandExpanded, !items.isEmpty {
             // Settings › HUDs › File tray: the drop landed without opening the
             // shelf, so say so in the notch for a moment.
             LiveActivityCenter.shared.post(LiveActivity(
@@ -104,7 +104,7 @@ extension AppState {
 
     /// Settings › Shelf › Auto-cleanup: unpinned files past their time leave.
     func pruneExpiredShelfItems(now: Date = Date()) {
-        guard let interval = trayExpiry.interval else { return }
+        guard let interval = TraySettings.shared.expiry.interval else { return }
         let expired = shelfItems.filter { item in
             guard let end = item.expiryDate(after: interval) else { return false }
             return end <= now
@@ -118,7 +118,7 @@ extension AppState {
             appName: "Tama Shelf",
             title: "Expired",
             message: expired.count == 1 ? "\(expired[0].name) left the Shelf"
-                : "\(expired.count) files left the Shelf after \(trayExpiry.title)",
+                : "\(expired.count) files left the Shelf after \(TraySettings.shared.expiry.title)",
             icon: "clock.badge.xmark"
         )
     }
@@ -169,7 +169,7 @@ extension AppState {
     /// went and offer it back — with room to hold it: `undoCapacity` (the
     /// setting before it was lowered), or just enough for every file.
     func trimTray(reason: String, undoCapacity: Int? = nil) {
-        let capacity = max(trayCapacity, 1)
+        let capacity = max(TraySettings.shared.capacity, 1)
         guard shelfItems.count > capacity else { return }
         let snapshot = shelfItems
         // Pinned files never make room; the oldest unpinned ones go.
@@ -187,7 +187,7 @@ extension AppState {
             actionTitle: undoCapacity == nil ? "Keep All" : "Undo",
             action: {
                 let state = AppState.shared
-                if state.trayCapacity < roomFor { state.trayCapacity = roomFor }
+                if TraySettings.shared.capacity < roomFor { TraySettings.shared.capacity = roomFor }
                 state.restoreShelfItems(snapshot, removed: removed)
             }
         )

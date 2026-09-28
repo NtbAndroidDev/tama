@@ -16,7 +16,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         switch self {
         case .general: "General"
         case .droplets: "Droplets"
-        case .shortcuts: "Keyboard Shortcuts"
+        case .shortcuts: "Keyboard shortcuts"
         case .shelf: "Shelf"
         case .basket: "Basket"
         case .clipboard: "Clipboard"
@@ -235,6 +235,7 @@ enum SettingsSearchIndex {
         .init("droplet.menuBar.appSwitch", "Rehide when switching apps", .droplets, ["menu bar", "rehide", "app switch"]),
         .init("droplet.menuBar.icon", "Menu bar toggle icon", .droplets, ["menu bar", "chevron", "dot", "icon"]),
         .init("droplet.menuBar.template", "Render icon as a template", .droplets, ["menu bar", "template", "monochrome", "color"]),
+        .init("droplet.menuBar.dividers", "Show section dividers", .droplets, ["menu bar", "dividers", "separator", "hidden section"]),
         .init("droplet.menuBar.reset", "Reset menu bar layout", .droplets, ["menu bar", "reset", "layout", "order"]),
         // Keyboard Shortcuts
         .init("shortcuts.all", "All keyboard shortcuts", .shortcuts,
@@ -307,6 +308,7 @@ enum SettingsSearchIndex {
               ["high alert", "sleep now", "system sleep", "put your mac to sleep", "pmset", "disablesleep"]),
         .init("shelf.tasks.show", "Show reminders & events", .shelf,
               ["tasks", "calendar", "reminders", "events", "show tasks", "hide tasks", "tasks & calendar"]),
+        .init("shelf.tasks.popoutOpen", "Pop out calendar", .shelf, ["calendar window", "pop out", "separate window", "month view"]),
         .init("shelf.tasks.hideUndated", "Hide undated tasks", .shelf, ["tasks", "reminders", "no due date", "undated"]),
         .init("shelf.tasks.weekNumbers", "Week numbers", .shelf, ["week #", "wk", "calendar", "week of year"]),
         .init("shelf.tasks.cleanup", "Remove completed tasks after", .shelf,
@@ -484,9 +486,10 @@ enum SettingsSearchIndex {
         .init("about.hardReset", "Hard reset", .about, ["reset", "reset everything", "factory reset", "defaults", "restore"]),
         .init("about.transfer", "Transfer settings", .about, ["export", "import", "backup", "settings file", "new mac", "json"]),
         .init("about.whatsNew", "What's New", .about, ["new features", "bug fixes", "release notes", "update", "changes"]),
+        .init("about.showWhatsNew", "Show What's New after updates", .about, ["what's new window", "release notes", "after update", "popup"]),
         .init("about.userGuide", "Tama Guide", .about,
               ["user guide", "guide", "help", "manual", "how to", "documentation", "handbook", "instructions", "tutorial", "learn"]),
-        .init("about.setupGuide", "Setup Guide", .about, ["recommended setup", "checklist", "one-time setup", "getting started", "onboarding"]),
+        .init("about.setupGuide", "Setup guide", .about, ["recommended setup", "checklist", "one-time setup", "getting started", "onboarding"]),
         .init("about.crashReport", "Tell me after a crash", .about,
               ["crash", "crashed", "crash report", "diagnostic report", "ips", "bug report", "report a bug"]),
         .init("about.lastCrash", "Last crash report", .about,
@@ -591,19 +594,19 @@ final class SettingsNavigator: ObservableObject {
 private struct SettingsAnchorModifier: ViewModifier {
     let anchor: String
     @ObservedObject private var navigator = SettingsNavigator.shared
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
 
     func body(content: Content) -> some View {
         let isLit = navigator.highlighted == anchor
         content
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(state.accentColor.color.opacity(isLit ? 0.22 : 0))
+                    .fill(themeSettings.accentColor.color.opacity(isLit ? 0.22 : 0))
                     .allowsHitTesting(false)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(state.accentColor.color.opacity(isLit ? 0.7 : 0), lineWidth: 1.5)
+                    .strokeBorder(themeSettings.accentColor.color.opacity(isLit ? 0.7 : 0), lineWidth: 1.5)
                     .allowsHitTesting(false)
             )
             .animation(.easeOut(duration: 0.25), value: isLit)

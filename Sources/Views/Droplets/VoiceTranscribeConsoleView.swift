@@ -21,6 +21,7 @@ struct VoiceRecorderView: View {
     var isFloating = false
     @ObservedObject private var voice = VoiceTranscribeService.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var voiceSettings = VoiceSettings.shared
     @State private var isDropTargeted = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -206,7 +207,7 @@ struct VoiceRecorderView: View {
                 StopRingButton { voice.stopRecording() }
             }
             .padding(.horizontal, DS.Space.md)
-            if state.voiceLiveTranscription, !voice.transcript.isEmpty {
+            if voiceSettings.liveTranscription, !voice.transcript.isEmpty {
                 ScrollView(.vertical, showsIndicators: false) {
                     Text(voice.transcript)
                         .font(DS.Typo.body)

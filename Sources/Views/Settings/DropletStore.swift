@@ -80,8 +80,10 @@ enum DropletStoreInfo {
         switch id {
         case "appleMusic":
             return missing([.automationMusic], "Allow Tama to control Music for play, skip and scrub.")
-        case "windowSnapper", "liquidMouse":
-            return missing([.accessibility], "\(PermissionService.accessibilityName) access moves windows and smooths scrolling.")
+        case "windowSnapper":
+            return missing([.accessibility], "\(PermissionService.accessibilityName) access lets Window Snap move and resize windows.")
+        case "liquidMouse":
+            return missing([.accessibility], "\(PermissionService.accessibilityName) access lets LiquidMouse smooth and reverse scrolling.")
         case "meetings":
             return missing([.accessibility], "\(PermissionService.accessibilityName) access presses the call app's mute, camera and hang-up shortcuts.")
         case "snipper":
@@ -157,7 +159,13 @@ struct DropletsStoreTab: View {
         .onAppear { permissions.refresh() }
     }
 
+    /// Scrolls sideways rather than squeezing the chips in a narrow window.
     private var chips: some View {
+        ScrollView(.horizontal, showsIndicators: false) { chipRow }
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+    }
+
+    private var chipRow: some View {
         HStack(spacing: 10) {
             StoreFilterChip(title: "All", icon: "square.grid.2x2.fill", isSelected: filter == nil) {
                 withAnimation(DS.Motion.respecting(DS.Motion.reduceMotion, DS.Motion.snap)) { filter = nil }
@@ -257,7 +265,11 @@ private struct DropletHeroCarousel: View {
                                                                     removal: .move(edge: .leading).combined(with: .opacity)))
                 .accessibilityLabel("\(item.droplet.name). \(item.tagline)")
                 .accessibilityHint("Opens the droplet's page")
-
+            }
+            .frame(height: ToolWindowMetrics.dropletHeroHeight)
+            .clipped()
+            // Outside the clip, so the arrows can hang half off the card.
+            .overlay {
                 HStack {
                     arrow("chevron.left", help: "Previous") { step(-1) }
                     Spacer()
@@ -265,8 +277,6 @@ private struct DropletHeroCarousel: View {
                 }
                 .padding(.horizontal, -14)
             }
-            .frame(height: ToolWindowMetrics.dropletHeroHeight)
-            .clipped()
             .padding(.horizontal, 14)
             .onHover { isHovered = $0 }
 
@@ -326,6 +336,8 @@ private struct DropletHeroCarousel: View {
 private struct DropletHeroCard: View {
     let droplet: DropletModel
     let tagline: String
+    @State private var showsMock = true
+    private static let mockMinWidth: CGFloat = 520
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -353,11 +365,20 @@ private struct DropletHeroCard: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                DropletShelfMock(droplet: droplet, width: 272)
+                if showsMock {
+                    DropletShelfMock(droplet: droplet, width: 272)
+                }
             }
             .padding(.horizontal, 26)
             .padding(.vertical, 22)
         }
+        // A narrow window leaves the name and tagline too little room beside
+        // the 272 pt mock, so the card keeps the text alone there.
+        .background(GeometryReader { geo in
+            Color.clear
+                .onAppear { showsMock = geo.size.width >= Self.mockMinWidth }
+                .onChange(of: geo.size.width) { _, width in showsMock = width >= Self.mockMinWidth }
+        })
         .frame(maxWidth: .infinity)
         .frame(height: ToolWindowMetrics.dropletHeroHeight)
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
@@ -468,11 +489,13 @@ private struct DropletStoreRow: View {
                     HStack(spacing: 6) {
                         Text(droplet.name)
                             .font(.system(size: 15, weight: .bold))
-                            .lineLimit(1)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.85)
+                            .fixedSize(horizontal: false, vertical: true)
                         if droplet.isEnabled {
                             Image(systemName: needsSetup ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
                                 .font(.system(size: 11))
-                                .foregroundStyle(needsSetup ? Color.orange : Color.green)
+                                .foregroundStyle(needsSetup ? DS.Palette.warning : DS.Palette.success)
                                 .help(needsSetup ? "Needs setup" : "Installed")
                                 .accessibilityHidden(true)
                         }
@@ -522,6 +545,7 @@ struct DropletDetailView: View {
     @Binding var droplet: DropletModel
     let back: () -> Void
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
     @ObservedObject private var permissions = PermissionService.shared
     @ObservedObject private var navigator = SettingsNavigator.shared
     @ObservedObject private var notifications = NotificationHUDService.shared
@@ -535,11 +559,11 @@ struct DropletDetailView: View {
     /// Settings › "Show in Settings sidebar" for this droplet.
     private var showsInSidebar: Binding<Bool> {
         Binding(
-            get: { !state.sidebarHiddenDroplets.split(separator: ",").contains(Substring(droplet.id)) },
+            get: { !generalSettings.sidebarHiddenDroplets.split(separator: ",").contains(Substring(droplet.id)) },
             set: { show in
-                var ids = Set(state.sidebarHiddenDroplets.split(separator: ",").map(String.init))
+                var ids = Set(generalSettings.sidebarHiddenDroplets.split(separator: ",").map(String.init))
                 if show { ids.remove(droplet.id) } else { ids.insert(droplet.id) }
-                state.sidebarHiddenDroplets = ids.sorted().joined(separator: ",")
+                generalSettings.sidebarHiddenDroplets = ids.sorted().joined(separator: ",")
             }
         )
     }
@@ -574,7 +598,7 @@ struct DropletDetailView: View {
                             .fixedSize(horizontal: false, vertical: true)
                         if let setup {
                             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.orange)
+                                Image(systemName: "exclamationmark.circle.fill").foregroundStyle(DS.Palette.warning)
                                     .accessibilityHidden(true)
                                 Text(setup.reason).fixedSize(horizontal: false, vertical: true)
                                 Spacer()
@@ -634,7 +658,7 @@ struct DropletDetailView: View {
             }
             DetailPill(title: droplet.isEnabled ? "Turn Off" : "Turn On", icon: "power",
                        fill: Color.white.opacity(0.1),
-                       foreground: droplet.isEnabled ? .primary : .green) {
+                       foreground: droplet.isEnabled ? .primary : DS.Palette.success) {
                 withAnimation(DS.Motion.respecting(reduceMotion, DS.Motion.snap)) { droplet.isEnabled.toggle() }
                 DroppyAudio.playTick()
             }
@@ -658,9 +682,9 @@ struct DropletDetailView: View {
                     HStack(spacing: 8) {
                         DetailChip(title: DropletStoreInfo.caption(for: droplet), tint: DropletPalette.tint(for: droplet.id))
                         if setup != nil {
-                            DetailChip(title: "Needs setup", tint: .orange)
+                            DetailChip(title: "Needs setup", tint: DS.Palette.warning)
                         } else if droplet.isEnabled {
-                            DetailChip(title: "Installed", tint: .green)
+                            DetailChip(title: "Installed", tint: DS.Palette.success)
                         } else {
                             DetailChip(title: "Not installed", tint: .gray)
                         }
@@ -693,7 +717,7 @@ struct DropletDetailView: View {
                 .disabled(!droplet.isEnabled)
             }
             FormShortcutRow(slot: .droplet(droplet.id), title: "Shortcut to open",
-                            help: "Opens this widget's console in the shelf from anywhere; press it again to close. All shortcuts are listed under Keyboard Shortcuts.",
+                            help: "Opens this widget's console in the shelf from anywhere; press it again to close. All shortcuts are listed under Keyboard shortcuts.",
                             anchor: "droplet.\(droplet.id).openShortcut")
                 .disabled(!droplet.isEnabled)
             Toggle(isOn: showsInSidebar) {

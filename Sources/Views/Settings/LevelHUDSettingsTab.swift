@@ -7,6 +7,8 @@ struct LevelHUDSettingsTab: View {
     let kind: IslandHUD.Kind
 
     @ObservedObject var state = AppState.shared
+    @ObservedObject private var hudSettings = HUDSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @ObservedObject private var outputs = AudioOutputService.shared
     @ObservedObject private var mediaKeys = MediaKeyMonitor.shared
     @ObservedObject private var permissions = PermissionService.shared
@@ -19,14 +21,14 @@ struct LevelHUDSettingsTab: View {
 
     // MARK: Bindings for this kind's settings
 
-    private var enabled: Binding<Bool> { isVolume ? $state.showVolumeHUD : $state.showBrightnessHUD }
-    private var duration: Binding<Double> { isVolume ? $state.hudDuration : $state.brightnessHUDDuration }
-    private var meter: Binding<HUDMeterStyle> { isVolume ? $state.hudMeterStyle : $state.brightnessHUDMeterStyle }
-    private var showPercentage: Binding<Bool> { isVolume ? $state.hudShowPercentage : $state.brightnessHUDShowPercentage }
-    private var hideLabel: Binding<Bool> { isVolume ? $state.hudHideLabel : $state.brightnessHUDHideLabel }
-    private var animation: Binding<HUDAnimation> { isVolume ? $state.hudAnimation : $state.brightnessHUDAnimation }
-    private var replaceSystem: Binding<Bool> { isVolume ? $state.replaceSystemVolumeHUD : $state.replaceSystemBrightnessHUD }
-    private var scrollToChange: Binding<Bool> { isVolume ? $state.scrollToChangeVolume : $state.scrollToChangeBrightness }
+    private var enabled: Binding<Bool> { isVolume ? $hudSettings.showVolumeHUD : $hudSettings.showBrightnessHUD }
+    private var duration: Binding<Double> { isVolume ? $hudSettings.hudDuration : $hudSettings.brightnessHUDDuration }
+    private var meter: Binding<HUDMeterStyle> { isVolume ? $hudSettings.hudMeterStyle : $hudSettings.brightnessHUDMeterStyle }
+    private var showPercentage: Binding<Bool> { isVolume ? $hudSettings.hudShowPercentage : $hudSettings.brightnessHUDShowPercentage }
+    private var hideLabel: Binding<Bool> { isVolume ? $hudSettings.hudHideLabel : $hudSettings.brightnessHUDHideLabel }
+    private var animation: Binding<HUDAnimation> { isVolume ? $hudSettings.hudAnimation : $hudSettings.brightnessHUDAnimation }
+    private var replaceSystem: Binding<Bool> { isVolume ? $hudSettings.replaceSystemVolumeHUD : $hudSettings.replaceSystemBrightnessHUD }
+    private var scrollToChange: Binding<Bool> { isVolume ? $hudSettings.scrollToChangeVolume : $hudSettings.scrollToChangeBrightness }
 
     private var style: LevelHUDStyle { state.hudStyle(for: kind) }
 
@@ -82,7 +84,7 @@ struct LevelHUDSettingsTab: View {
                     tileRow(HUDAnimation.allCases, selection: animation, title: \.rawValue) { option in
                         Image(systemName: option.iconName)
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(option == animation.wrappedValue ? state.accentColor.color : .secondary)
+                            .foregroundStyle(option == animation.wrappedValue ? themeSettings.accentColor.color : .secondary)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     }
@@ -90,7 +92,7 @@ struct LevelHUDSettingsTab: View {
                     if isVolume {
                         SettingsDivider()
                         SettingsRow("Leading icon")
-                        tileRow(HUDLeading.allCases, selection: $state.hudLeading, title: \.rawValue) { option in
+                        tileRow(HUDLeading.allCases, selection: $hudSettings.hudLeading, title: \.rawValue) { option in
                             Image(systemName: option == .symbol ? "speaker.wave.2.fill" : (currentDevice?.symbol ?? "airpodspro"))
                                 .font(.system(size: 17, weight: .semibold))
                                 .foregroundStyle(.white)
@@ -166,9 +168,9 @@ struct LevelHUDSettingsTab: View {
 
     private var footer: String {
         if isVolume {
-            return "With the macOS HUD hidden, Tama handles the volume keys itself: the same steps as macOS, ⌥⇧ for finer ones, and the feedback sound if it's on in Sound settings. Outputs without a software volume, like HDMI displays, keep the macOS HUD. In All Displays the level shows only on the screen you're using; in the open shelf it shows along the bottom."
+            return "With the macOS HUD hidden, Tama handles the volume keys itself: the same steps as macOS, ⌥⇧ for finer ones, and the feedback sound if Key sound is on under Media keys. Outputs without a software volume, like HDMI displays, keep the macOS HUD. In All Displays the level shows only on the screen you're using; in the open shelf it shows along the bottom."
         }
-        return "With the macOS HUD hidden, Tama handles the brightness keys itself: the same steps as macOS, ⌥⇧ for finer ones. It dims the built-in display; external displays keep the macOS HUD. Keyboards whose brightness keys macOS handles in hardware can't be taken over."
+        return "With the macOS HUD hidden, Tama handles the brightness keys itself: the same steps as macOS, ⌥⇧ for finer ones. It dims the built-in display, Apple displays and, through BetterDisplay, others; other external displays keep the macOS HUD. Keyboards whose brightness keys macOS handles in hardware can't be taken over."
     }
 
     // MARK: Parts
@@ -228,7 +230,7 @@ struct LevelHUDSettingsTab: View {
                             .padding(3)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                    .strokeBorder(isSelected ? state.accentColor.color : Color.primary.opacity(0.1), lineWidth: isSelected ? 2.5 : 1)
+                                    .strokeBorder(isSelected ? themeSettings.accentColor.color : Color.primary.opacity(0.1), lineWidth: isSelected ? 2.5 : 1)
                             )
                         Text(option[keyPath: title])
                             .font(.system(size: 12, weight: isSelected ? .semibold : .regular))

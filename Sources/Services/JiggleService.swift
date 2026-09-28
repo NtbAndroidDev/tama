@@ -49,7 +49,7 @@ public final class JiggleService {
 
     public func syncIdleWatch() {
         let state = AppState.shared
-        let wanted = state.basketAutoHide && state.isBasketVisible && !PowerStateService.shared.isDormant
+        let wanted = BasketSettings.shared.autoHide && state.isBasketVisible && !PowerStateService.shared.isDormant
         if wanted, idleTimer == nil {
             idleSeconds = 0
             let timer = Timer(timeInterval: 0.5, repeats: true) { _ in
@@ -95,7 +95,7 @@ public final class JiggleService {
 
     private func beginGesture() {
         dragChangeCount = NSPasteboard(name: .drag).changeCount
-        detector = Self.detector(sensitivity: AppState.shared.basketShakeSensitivity)
+        detector = Self.detector(sensitivity: BasketSettings.shared.shakeSensitivity)
         isFileDrag = false
         instantWork?.cancel()
     }
@@ -115,19 +115,19 @@ public final class JiggleService {
         guard isFileDrag else { return }
 
         // Drag shortcut: the recorded modifiers are down.
-        let wanted = UInt(max(state.basketDragModifiers, 0))
+        let wanted = UInt(max(BasketSettings.shared.dragModifiers, 0))
         if wanted != 0, flags & wanted == wanted, !state.isBasketVisible {
             summon()
             return
         }
 
-        guard state.jiggleToOpenBasket, abs(dx) > 1 else { return }
+        guard BasketSettings.shared.jiggleToOpenBasket, abs(dx) > 1 else { return }
         let now = Date()
         guard detector.record(dx: dx, at: now) else { return }
         detector.fire(at: now)
         if !state.isBasketVisible {
             summon()
-        } else if state.basketMode == .multi, !FloatingBasketController.shared.isPointerOverBasket,
+        } else if BasketSettings.shared.mode == .multi, !FloatingBasketController.shared.isPointerOverBasket,
                   now.timeIntervalSince(lastSpawn) > 1 {
             // Multi-Basket: jiggling while a basket is open spawns another.
             lastSpawn = now
@@ -138,7 +138,7 @@ public final class JiggleService {
     /// Instant appear: the Basket comes after the delay unless the drag ended.
     private func scheduleInstantAppear() {
         let state = AppState.shared
-        guard state.basketInstantAppear, !state.isBasketVisible else { return }
+        guard BasketSettings.shared.instantAppear, !state.isBasketVisible else { return }
         // Tiles dragged out of Tama itself don't count.
         guard TrayActions.internalDragSource == nil else { return }
         let work = DispatchWorkItem {
@@ -148,7 +148,7 @@ public final class JiggleService {
             }
         }
         instantWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + min(max(state.basketInstantDelay, 0), 2), execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + min(max(BasketSettings.shared.instantDelay, 0), 2), execute: work)
     }
 
     private func summon() {
@@ -160,7 +160,7 @@ public final class JiggleService {
     /// Auto-hide: no drag, the pointer away from every Basket, nothing modal.
     private func tickAutoHide() {
         let state = AppState.shared
-        guard state.basketAutoHide, state.isBasketVisible else {
+        guard BasketSettings.shared.autoHide, state.isBasketVisible else {
             idleSeconds = 0
             return
         }
@@ -170,7 +170,7 @@ public final class JiggleService {
             return
         }
         idleSeconds += 0.5
-        if idleSeconds >= max(state.basketAutoHideDelay, 0.5) {
+        if idleSeconds >= max(BasketSettings.shared.autoHideDelay, 0.5) {
             idleSeconds = 0
             state.isBasketVisible = false
         }

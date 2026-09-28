@@ -69,16 +69,16 @@ extension NSScreen {
 extension AppState {
     /// Settings › HUDs › Per-display visibility: external displays switched off.
     public var hiddenDisplayKeys: Set<String> {
-        get { Set(hiddenDisplaysStorage.split(separator: "\n").map(String.init)) }
-        set { hiddenDisplaysStorage = newValue.sorted().joined(separator: "\n") }
+        get { Set(DisplaySettings.shared.hiddenDisplaysStorage.split(separator: "\n").map(String.init)) }
+        set { DisplaySettings.shared.hiddenDisplaysStorage = newValue.sorted().joined(separator: "\n") }
     }
 
     /// Whether a screen may carry the island at all (Hide on external
     /// displays, Per-display visibility). The built-in panel always may.
     public func allowsSurface(on screen: NSScreen) -> Bool {
         if screen.isBuiltIn { return true }
-        if hideOnExternalDisplays { return false }
-        if perDisplayVisibility, hiddenDisplayKeys.contains(screen.droppyDisplayKey) { return false }
+        if DisplaySettings.shared.hideOnExternalDisplays { return false }
+        if DisplaySettings.shared.perDisplayVisibility, hiddenDisplayKeys.contains(screen.droppyDisplayKey) { return false }
         return true
     }
 
@@ -96,8 +96,8 @@ extension AppState {
         guard let screen = screen(for: displayID) else { return false }
         if !allowsSurface(on: screen) { return true }
         let screens = ScreenStateService.shared
-        if hideInMissionControl, screens.isMissionControlActive { return true }
-        if fullscreenBehavior == .hideAll, let id = screen.displayID, screens.fullscreenDisplays.contains(id) { return true }
+        if DisplaySettings.shared.hideInMissionControl, screens.isMissionControlActive { return true }
+        if DisplaySettings.shared.fullscreenBehavior == .hideAll, let id = screen.displayID, screens.fullscreenDisplays.contains(id) { return true }
         return false
     }
 
@@ -105,8 +105,8 @@ extension AppState {
     /// is on, Auto-hide preview hasn't folded it, Now Playing display allows
     /// this island, and In fullscreen › Hide media doesn't leave it out.
     public func showsMedia(on displayID: CGDirectDisplayID?) -> Bool {
-        guard nowPlayingEnabled, !isMediaAutoHidden else { return false }
-        switch nowPlayingDisplay {
+        guard MediaSettings.shared.nowPlayingEnabled, !isMediaAutoHidden else { return false }
+        switch MediaSettings.shared.nowPlayingDisplay {
         case .underPointer:
             // All Displays' look-alikes on the other screens stay quiet.
             if displayID != nil { return false }
@@ -114,7 +114,7 @@ extension AppState {
             let screens = NSScreen.screens
             if screens.contains(where: \.isBuiltIn), screen(for: displayID)?.isBuiltIn == false { return false }
         }
-        guard fullscreenBehavior == .hideMedia,
+        guard DisplaySettings.shared.fullscreenBehavior == .hideMedia,
               let id = screen(for: displayID)?.displayID else { return true }
         return !ScreenStateService.shared.fullscreenDisplays.contains(id)
     }
@@ -122,7 +122,7 @@ extension AppState {
     /// Show when idle off: an external display's resting island fades out
     /// while nothing is live on it, and comes back on hover or a file drag.
     public func isIdleHidden(on displayID: CGDirectDisplayID?) -> Bool {
-        guard !showWhenIdle, let screen = screen(for: displayID), !screen.isBuiltIn,
+        guard !DisplaySettings.shared.showWhenIdle, let screen = screen(for: displayID), !screen.isBuiltIn,
               islandMode(on: displayID) == .resting, !hasMiniActivity(on: displayID) else { return false }
         if displayID == nil, isIslandHovered || isDragNear { return false }
         return true

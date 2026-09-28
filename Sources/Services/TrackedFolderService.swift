@@ -33,18 +33,18 @@ public final class TrackedFolderService {
     private init() {}
 
     public var folders: [TrackedFolder] {
-        TrackedFolder.decode(AppState.shared.trackedFoldersStorage)
+        TrackedFolder.decode(FileActionSettings.shared.trackedFoldersStorage)
     }
 
     public func add(_ folder: URL, action: TrackedFolderAction = .tray) {
         var list = folders
         guard !list.contains(where: { $0.path == folder.path }) else { return }
         list.append(TrackedFolder(path: folder.path, action: action))
-        AppState.shared.trackedFoldersStorage = TrackedFolder.encode(list)
+        FileActionSettings.shared.trackedFoldersStorage = TrackedFolder.encode(list)
     }
 
     public func remove(_ folder: TrackedFolder) {
-        AppState.shared.trackedFoldersStorage =
+        FileActionSettings.shared.trackedFoldersStorage =
             TrackedFolder.encode(folders.filter { $0.path != folder.path })
     }
 
@@ -55,14 +55,13 @@ public final class TrackedFolderService {
         guard let index = list.firstIndex(where: { $0.path == folder.path }),
               list[index].action != action else { return }
         list[index].action = action
-        AppState.shared.trackedFoldersStorage = TrackedFolder.encode(list)
+        FileActionSettings.shared.trackedFoldersStorage = TrackedFolder.encode(list)
     }
 
     /// Starts and stops watches to match the settings, and carries an action
     /// the user changed onto the watch that is already running.
     public func sync() {
-        let state = AppState.shared
-        let wanted = state.trackedFoldersEnabled ? folders : []
+        let wanted = FileActionSettings.shared.trackedFoldersEnabled ? folders : []
         let byPath = Dictionary(wanted.map { ($0.path, $0) }, uniquingKeysWith: { first, _ in first })
         for (path, watch) in watches {
             guard let folder = byPath[path] else {
@@ -190,7 +189,7 @@ public final class TrackedFolderService {
             let held = state.addShelfItems(items)
             let targets = held.filter { FileCompressor.canCompress($0.url) }
             guard !targets.isEmpty else { return }
-            CompressActions.compress(targets, level: state.trackedFoldersCompressionLevel)
+            CompressActions.compress(targets, level: FileActionSettings.shared.trackedFoldersCompressionLevel)
         }
     }
 }

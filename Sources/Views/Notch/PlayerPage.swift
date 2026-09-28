@@ -11,6 +11,7 @@ public enum PlayerPanel: Equatable, Sendable {
 /// opening as a column beside it and the audio output picker under it.
 public struct PlayerPage: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var mediaSettings = MediaSettings.shared
     @ObservedObject private var media = MediaService.shared
     @ObservedObject private var outputs = AudioOutputService.shared
     @ObservedObject private var lyrics = LyricsService.shared
@@ -68,7 +69,7 @@ public struct PlayerPage: View {
                 } else if track.needsBrowserJavaScript {
                     browserScrubHint
                 } else {
-                    PlayerScrubber(track: track, showsRemaining: state.playerShowsRemaining)
+                    PlayerScrubber(track: track, showsRemaining: mediaSettings.playerShowsRemaining)
                 }
             }
             .frame(height: PlayerMetrics.scrubberHeight)
@@ -112,14 +113,14 @@ public struct PlayerPage: View {
     /// Settings › Shelf › Auto-expand lyrics: look the song up, and open the
     /// card once lyrics are found (not for a miss).
     private func autoExpandLyrics() {
-        guard state.autoExpandLyrics, state.showsFullPlayer, track.hasTrack, lyricsOnline,
+        guard mediaSettings.autoExpandLyrics, state.showsFullPlayer, track.hasTrack, lyricsOnline,
               state.playerPanel == .none, !state.isOutputPickerOpen else { return }
         LyricsService.shared.load(for: track)
         openLyricsIfFound()
     }
 
     private func openLyricsIfFound() {
-        guard state.autoExpandLyrics, state.showsFullPlayer, track.hasTrack,
+        guard mediaSettings.autoExpandLyrics, state.showsFullPlayer, track.hasTrack,
               state.playerPanel == .none, !state.isOutputPickerOpen,
               case .loaded = lyrics.state else { return }
         withAnimation(DS.Motion.respecting(reduceMotion, DS.Motion.fluid)) { state.playerPanel = .lyrics }
@@ -138,7 +139,7 @@ public struct PlayerPage: View {
         HStack(alignment: .center, spacing: PlayerMetrics.headerSpacing) {
             Button {
                 // Settings › HUDs › Live album artwork opens the cover large.
-                if state.liveAlbumArtwork, track.hasTrack {
+                if mediaSettings.liveAlbumArtwork, track.hasTrack {
                     ArtworkWindowController.shared.show()
                 } else if track.hasTrack {
                     media.openSourceApp()
@@ -191,19 +192,19 @@ public struct PlayerPage: View {
 
     /// The playing app, or the default music app before anything plays.
     private var badgeBundleID: String? {
-        guard track.hasTrack else { return state.defaultMusicApp.bundleID }
+        guard track.hasTrack else { return mediaSettings.defaultMusicApp.bundleID }
         return track.sourceBundleID.isEmpty ? AppIcon.bundleID(forPlayer: track.sourceApp) : track.sourceBundleID
     }
 
     private var artworkHelp: String {
-        if !track.hasTrack { return "Open \(state.defaultMusicApp.shortTitle)" }
-        if state.liveAlbumArtwork { return "Show album art" }
+        if !track.hasTrack { return "Open \(mediaSettings.defaultMusicApp.shortTitle)" }
+        if mediaSettings.liveAlbumArtwork { return "Show album art" }
         return track.sourceApp.isEmpty ? "Now Playing" : "Open \(track.sourceApp)"
     }
 
     /// Settings › Droplets › Apple Music › Audio quality badge.
     private var qualityBadge: String? {
-        guard state.audioQualityBadge, source == .appleMusic,
+        guard mediaSettings.audioQualityBadge, source == .appleMusic,
               state.droplets.first(where: { $0.id == "appleMusic" })?.isEnabled ?? true else { return nil }
         return track.audioQuality
     }
@@ -214,8 +215,8 @@ public struct PlayerPage: View {
     private var idleRow: some View {
         HStack(spacing: 8) {
             Spacer()
-            DroppyPillButton("Open \(state.defaultMusicApp.shortTitle)", systemName: "arrow.up.forward.app", tone: .tonal,
-                             help: "Launches \(state.defaultMusicApp.title) when nothing is currently playing.") {
+            DroppyPillButton("Open \(mediaSettings.defaultMusicApp.shortTitle)", systemName: "arrow.up.forward.app", tone: .tonal,
+                             help: "Launches \(mediaSettings.defaultMusicApp.title) when nothing is currently playing.") {
                 media.launchDefaultMusicApp(andPlay: false)
             }
             Spacer()
@@ -257,7 +258,7 @@ public struct PlayerPage: View {
             transportButton("backward.fill", size: PlayerMetrics.skipIcon, help: "Previous") { media.previousTrack() }
                 .disabled(!track.hasTrack)
             transportButton(track.isPlaying ? "pause.fill" : "play.fill", size: PlayerMetrics.playIcon,
-                            help: track.isPlaying ? "Pause" : (track.hasTrack ? "Play" : "Play \(state.defaultMusicApp.shortTitle)")) {
+                            help: track.isPlaying ? "Pause" : (track.hasTrack ? "Play" : "Play \(mediaSettings.defaultMusicApp.shortTitle)")) {
                 media.togglePlayPause()
             }
             transportButton("forward.fill", size: PlayerMetrics.skipIcon, help: "Next") { media.nextTrack() }
@@ -426,7 +427,7 @@ private struct PlayerScrubber: View {
             }
             // Remaining ("-1:05") or the length ("2:32"); click to switch.
             Button {
-                AppState.shared.playerShowsRemaining.toggle()
+                MediaSettings.shared.playerShowsRemaining.toggle()
                 DroppyAudio.playTick()
             } label: {
                 Text(trailingTime)
@@ -576,11 +577,12 @@ private struct OutputRow: View {
 /// (Settings › HUDs › Artwork tint). Fades out with no art or a paused song.
 struct ArtworkTintBackground: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var mediaSettings = MediaSettings.shared
     @ObservedObject private var media = MediaService.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let palette = state.playerArtworkTint && state.shelfPage == .home && state.showsFullPlayer
+        let palette = mediaSettings.playerArtworkTint && state.shelfPage == .home && state.showsFullPlayer
             ? ArtworkPalette.current(media.currentTrack) : nil
         ZStack {
             if let palette {

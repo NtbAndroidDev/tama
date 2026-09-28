@@ -5,6 +5,7 @@ import SwiftUI
 /// orange time. Running, the controls become pause and stop.
 struct PomodoroConsoleView: View {
     @ObservedObject var state = AppState.shared
+    @ObservedObject private var pomodoroSettings = PomodoroSettings.shared
     @ObservedObject private var pomodoroClock = PomodoroClock.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -36,7 +37,7 @@ struct PomodoroConsoleView: View {
     /// Momentum: finished focus sessions today and the day-by-day streak.
     @ViewBuilder
     private var momentum: some View {
-        if state.pomodoroShowsMomentum, let summary = state.pomodoroMomentum.summary(on: Date()) {
+        if pomodoroSettings.showsMomentum, let summary = state.pomodoroMomentum.summary(on: Date()) {
             HStack(spacing: DS.Space.xs) {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 9, weight: .semibold))
@@ -62,18 +63,18 @@ struct PomodoroConsoleView: View {
             state.startPomodoro()
             DroppyAudio.playTick()
         }
-        RulerRoundButton(state.pomodoroAmbientEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill",
-                         help: state.pomodoroAmbientEnabled
+        RulerRoundButton(pomodoroSettings.ambientEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill",
+                         help: pomodoroSettings.ambientEnabled
                             ? "Ambient sound: \(state.pomodoroAmbient.title) (click to mute)"
                             : "Ambient sound is off (click to turn on)") {
-            state.pomodoroAmbientEnabled.toggle()
+            pomodoroSettings.ambientEnabled.toggle()
             DroppyAudio.playTick()
         }
         .contextMenu {
             ForEach(AmbientSoundService.Sound.allCases) { sound in
                 Button {
-                    state.pomodoroAmbientSound = sound.rawValue
-                    state.pomodoroAmbientEnabled = true
+                    pomodoroSettings.ambientSound = sound.rawValue
+                    pomodoroSettings.ambientEnabled = true
                 } label: {
                     if sound == state.pomodoroAmbient { Label(sound.title, systemImage: "checkmark") } else { Text(sound.title) }
                 }
@@ -99,10 +100,10 @@ struct PomodoroConsoleView: View {
             state.resetPomodoro()
             DroppyAudio.playTick()
         }
-        if state.pomodoroAmbientEnabled || state.isPomodoroWorkCycle {
-            RulerRoundButton(state.pomodoroAmbientEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill",
-                             help: state.pomodoroAmbientEnabled ? "Mute ambient sound" : "Play ambient sound") {
-                state.pomodoroAmbientEnabled.toggle()
+        if pomodoroSettings.ambientEnabled || state.isPomodoroWorkCycle {
+            RulerRoundButton(pomodoroSettings.ambientEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill",
+                             help: pomodoroSettings.ambientEnabled ? "Mute ambient sound" : "Play ambient sound") {
+                pomodoroSettings.ambientEnabled.toggle()
                 DroppyAudio.playTick()
             }
         }

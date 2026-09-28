@@ -5,6 +5,7 @@ import AppKit
 
 struct ScreenSnipperConsoleView: View {
     @ObservedObject var state = AppState.shared
+    @ObservedObject private var captureSettings = CaptureSettings.shared
     @ObservedObject private var permissions = PermissionService.shared
     @ObservedObject private var capture = ScreenCaptureService.shared
 
@@ -138,11 +139,11 @@ struct ScreenSnipperConsoleView: View {
                     .help(isCapturing ? "Capturing…" : selectedMode.summary)
                     
                     VStack(alignment: .leading, spacing: DS.Space.xs) {
-                        destinationToggle("Clipboard", isOn: $state.captureToClipboard)
-                        destinationToggle("Tray", isOn: $state.captureToTray)
-                        destinationToggle("Folder", isOn: $state.captureToFolder)
+                        destinationToggle("Clipboard", isOn: $captureSettings.toClipboard)
+                        destinationToggle("Tray", isOn: $captureSettings.toTray)
+                        destinationToggle("Folder", isOn: $captureSettings.toFolder)
                             .help("Save to \(ScreenCaptureService.folderURL.lastPathComponent)")
-                        destinationToggle("Open editor instantly", isOn: $state.captureOpensEditor)
+                        destinationToggle("Open editor instantly", isOn: $captureSettings.opensEditor)
                     }
                     .padding(.horizontal, DS.Space.xxs)
                 }

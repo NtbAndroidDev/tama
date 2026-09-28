@@ -9,6 +9,7 @@ public struct CalendarPage: View {
     var isPopout: Bool
     @ObservedObject private var calendar = CalendarService.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var calendarSettings = CalendarSettings.shared
     @State private var month = Calendar.current.startOfMonth(for: Date())
     @State private var selected = Calendar.current.startOfDay(for: Date())
     @State private var isAdding = false
@@ -29,7 +30,7 @@ public struct CalendarPage: View {
         Group {
             if !calendar.hasEventAccess && !calendar.hasReminderAccess {
                 accessPrompt
-            } else if state.calendarLayout == .month {
+            } else if calendarSettings.layout == .month {
                 monthLayout
             } else {
                 agendaLayout
@@ -46,7 +47,7 @@ public struct CalendarPage: View {
             }
         }
         .animation(DS.Motion.respecting(reduceMotion, DS.Motion.snap), value: isAdding)
-        .animation(DS.Motion.respecting(reduceMotion, DS.Motion.fluid), value: state.calendarLayout)
+        .animation(DS.Motion.respecting(reduceMotion, DS.Motion.fluid), value: calendarSettings.layout)
         // A half-typed task holds the shelf open; a collapse would reset the
         // page and drop the draft with it.
         .onChange(of: isAdding) { _, adding in
@@ -72,20 +73,20 @@ public struct CalendarPage: View {
 
     private var toolbar: some View {
         HStack(spacing: 4) {
-            if state.calendarLayout == .agenda, !Calendar.current.isDateInToday(selected) {
+            if calendarSettings.layout == .agenda, !Calendar.current.isDateInToday(selected) {
                 CalendarTextButton("Today", filled: true, help: "Go to today") { goToToday() }
             }
-            NotchCircleButton(state.calendarLayout == .agenda ? "calendar" : "list.bullet.rectangle",
+            NotchCircleButton(calendarSettings.layout == .agenda ? "calendar" : "list.bullet.rectangle",
                               size: 24, iconSize: 10.5, filled: false,
-                              help: state.calendarLayout == .agenda ? "Show month grid" : "Show agenda") {
-                state.calendarLayout = state.calendarLayout == .agenda ? .month : .agenda
+                              help: calendarSettings.layout == .agenda ? "Show month grid" : "Show agenda") {
+                calendarSettings.layout = calendarSettings.layout == .agenda ? .month : .agenda
                 DroppyAudio.playTick()
             }
             if isPopout {
-                NotchCircleButton(state.calendarPopoutOnTop ? "pin.fill" : "pin", size: 24, iconSize: 10.5,
-                                  isActive: state.calendarPopoutOnTop, filled: false,
+                NotchCircleButton(calendarSettings.popoutOnTop ? "pin.fill" : "pin", size: 24, iconSize: 10.5,
+                                  isActive: calendarSettings.popoutOnTop, filled: false,
                                   help: "Keep calendar window on top") {
-                    state.calendarPopoutOnTop.toggle()
+                    calendarSettings.popoutOnTop.toggle()
                 }
                 NotchCircleButton("xmark", size: 24, iconSize: 10, filled: false, help: "Close calendar pop-out") {
                     CalendarPopoutController.shared.close()
@@ -195,7 +196,7 @@ public struct CalendarPage: View {
                     if calendar.isReminderAccessDenied {
                         remindersDeniedNote
                     } else if calendar.agenda.isEmpty && !isAdding {
-                        Text(state.tasksShowTasks ? "Click + to add your first task" : "Events from Apple Calendar show here")
+                        Text(calendarSettings.showTasks ? "Click + to add your first task" : "Events from Apple Calendar show here")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(NotchPalette.tertiary)
                     }
@@ -223,7 +224,7 @@ public struct CalendarPage: View {
     }
 
     private var emptyTitle: String {
-        switch (state.tasksShowTasks && calendar.hasReminderAccess, state.tasksShowEvents && calendar.hasEventAccess) {
+        switch (calendarSettings.showTasks && calendar.hasReminderAccess, calendarSettings.showEvents && calendar.hasEventAccess) {
         case (true, true): "No upcoming tasks or events"
         case (true, false): "No tasks yet"
         default: "No upcoming events"
@@ -282,7 +283,7 @@ public struct CalendarPage: View {
     }
 
     private func weekSuffix(_ day: Date) -> String {
-        guard state.tasksWeekNumbers else { return "" }
+        guard calendarSettings.weekNumbers else { return "" }
         return " (wk. \(Calendar.current.component(.weekOfYear, from: day)))"
     }
 

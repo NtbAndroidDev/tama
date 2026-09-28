@@ -4,6 +4,8 @@ import SwiftUI
 /// little scale and blur, the way Tama swaps between player, tray and widgets.
 public struct ShelfView: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init() {}
@@ -34,7 +36,7 @@ public struct ShelfView: View {
         // Settings › HUDs › Artwork tint: the player washes the shelf in the cover's colours.
         .background(ArtworkTintBackground())
         .overlay(alignment: .top) {
-            if state.shelfNavigationStyle == .regularButtons {
+            if shelfSettings.navigationStyle == .regularButtons {
                 WingTabs()
             }
         }
@@ -94,6 +96,8 @@ public struct ShelfView: View {
 private struct ShelfToast: View {
     let notification: DroppyNotification
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -153,6 +157,8 @@ private struct ShelfToast: View {
 /// the round buttons stay here.
 public struct LanePill: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @ObservedObject private var accessories = ShelfAccessoryCenter.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -160,7 +166,7 @@ public struct LanePill: View {
 
     public var body: some View {
         HStack(spacing: DroppyShelfMetrics.floatingButtonSpacing) {
-            if state.shelfNavigationStyle == .floatingBar {
+            if shelfSettings.navigationStyle == .floatingBar {
                 FloatingNavBar()
             }
             if state.showsCalendarFloatingButton {
@@ -202,6 +208,8 @@ struct NavGlass<S: Shape>: View {
 /// One capsule with house / tray / grid; the page on screen gets a lighter disc.
 struct FloatingNavBar: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var indicator
     @State private var hovered: ShelfPage?
@@ -295,6 +303,8 @@ struct FloatingGlassButton<Label: View>: View {
     let action: () -> Void
     @ViewBuilder let label: Label
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @State private var isHovered = false
 
     init(help: String, isSelected: Bool = false, tint: Color? = nil,
@@ -306,7 +316,7 @@ struct FloatingGlassButton<Label: View>: View {
         self.label = label()
     }
 
-    private var isColored: Bool { state.floatingButtonStyle == .colored && tint != nil }
+    private var isColored: Bool { shelfSettings.floatingButtonStyle == .colored && tint != nil }
 
     var body: some View {
         let side = DroppyShelfMetrics.floatingButton
@@ -347,12 +357,14 @@ struct FloatingButtonSymbol: View {
     let icon: String
     var tint: Color?
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
 
     var body: some View {
         Image(systemName: icon)
             .font(.system(size: DroppyShelfMetrics.floatingButton * 0.4, weight: .semibold))
-            .foregroundStyle(Self.color(style: state.floatingButtonStyle, tint: tint,
-                                        lightIcons: state.floatingButtonLightIcons))
+            .foregroundStyle(Self.color(style: shelfSettings.floatingButtonStyle, tint: tint,
+                                        lightIcons: shelfSettings.floatingButtonLightIcons))
     }
 
     /// Glass keeps the widget's colour; Colored uses the icon colour on the
@@ -373,6 +385,8 @@ struct FavoriteGlyph: View {
     /// Settings ignores the chosen style in its own previews.
     var stylized = true
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
 
     var body: some View {
         switch favorite.kind {
@@ -381,8 +395,8 @@ struct FavoriteGlyph: View {
             Image(systemName: symbol)
                 .font(.system(size: size * 0.78, weight: .semibold))
                 .foregroundStyle(stylized
-                    ? FloatingButtonSymbol.color(style: state.floatingButtonStyle, tint: favorite.tint,
-                                                 lightIcons: state.floatingButtonLightIcons)
+                    ? FloatingButtonSymbol.color(style: shelfSettings.floatingButtonStyle, tint: favorite.tint,
+                                                 lightIcons: shelfSettings.floatingButtonLightIcons)
                     : DropletPalette.tint(for: favorite.value))
         case .app:
             Image(nsImage: FileIcon.image(for: favorite.value))
@@ -406,6 +420,8 @@ struct FavoriteGlyph: View {
 /// a row at the top of the shelf.
 struct WingTabs: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.islandDisplayID) private var displayID
     @Namespace private var indicator
@@ -487,6 +503,8 @@ struct WingTabs: View {
 /// the pointer lights up and gets the drop.
 public struct QuickActionsView: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init() {}
@@ -542,6 +560,8 @@ public struct QuickActionsView: View {
 public struct IslandHUDView: View {
     public let hud: IslandHUD
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.islandDisplayID) private var displayID
 
@@ -570,6 +590,8 @@ struct HUDLabel: View {
     /// Settings previews pass their own; the notch reads the setting.
     var style: LevelHUDStyle? = nil
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
 
     private var resolved: LevelHUDStyle { style ?? state.hudStyle(for: hud.kind) }
 
@@ -627,6 +649,8 @@ struct HUDMeter: View {
     /// (the Settings tile keeps its length but shows the live colour).
     var colorLevel: Double? = nil
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
 
     var body: some View {
         let setting = state.hudStyle(for: hud.kind)
@@ -634,7 +658,7 @@ struct HUDMeter: View {
         // Resolved here, at draw time, so a new accent retints the next HUD.
         let fill = hud.isMuted
             ? Color.white.opacity(0.35)
-            : style.color(for: colorLevel ?? hud.value, accent: state.accentColor.color, custom: state.hudCustomColor(for: hud.kind))
+            : style.color(for: colorLevel ?? hud.value, accent: themeSettings.accentColor.color, custom: state.hudCustomColor(for: hud.kind))
         let glow: CGFloat = hud.isMuted || style == .white ? 0 : (style == .decibel ? 7 : 4)
         // The empty part of the track carries a hint of the fill's colour.
         let track = hud.isMuted || style == .white ? Color.white.opacity(0.16) : fill.opacity(0.22)

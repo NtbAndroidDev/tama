@@ -13,9 +13,8 @@ struct CaptureDestinations: Equatable, Sendable {
     var editor: Bool
 
     @MainActor static var current: CaptureDestinations {
-        let s = AppState.shared
-        return CaptureDestinations(clipboard: s.captureToClipboard, tray: s.captureToTray,
-                                   folder: s.captureToFolder, editor: s.captureOpensEditor)
+        return CaptureDestinations(clipboard: CaptureSettings.shared.toClipboard, tray: CaptureSettings.shared.toTray,
+                                   folder: CaptureSettings.shared.toFolder, editor: CaptureSettings.shared.opensEditor)
     }
 }
 
@@ -66,7 +65,7 @@ final class ScreenCaptureService: ObservableObject {
                 return
             }
             status = "Capturing…"
-            let excludeDroppy = AppState.shared.captureExcludesDroppy
+            let excludeDroppy = CaptureSettings.shared.excludesDroppy
             let overlays = CaptureSelectionController.shared.overlayWindowIDs
             do {
                 let image = try await Self.grab(selection, excludeOwnWindows: excludeDroppy, alwaysExcluded: overlays)
@@ -225,7 +224,7 @@ final class ScreenCaptureService: ObservableObject {
     private func deliver(_ image: CGImage, scale: CGFloat, mode: CaptureMode,
                          destinations: CaptureDestinations, revealTray: Bool) async {
         let state = AppState.shared
-        let compress = state.captureAutoCompress && mode != .ocr
+        let compress = CaptureSettings.shared.autoCompress && mode != .ocr
         let name = Self.fileName()
         guard let url = await Self.write(image, scale: scale, name: name, compress: compress) else {
             status = "Could not encode the screenshot."
@@ -350,7 +349,7 @@ final class ScreenCaptureService: ObservableObject {
 
     /// The screenshot folder: the one chosen in Settings, else the Desktop.
     static var folderURL: URL {
-        let path = AppState.shared.captureFolderPath
+        let path = CaptureSettings.shared.folderPath
         if !path.isEmpty { return URL(fileURLWithPath: path, isDirectory: true) }
         return FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Desktop")
@@ -398,7 +397,7 @@ final class ScreenCaptureService: ObservableObject {
                 return
             }
             let lines = text.components(separatedBy: .newlines).count
-            if AppState.shared.autoCopyOCRText {
+            if TraySettings.shared.autoCopyOCRText {
                 AppState.shared.autoCopyRecognizedText(text)
                 status = "Copied \(lines) line\(lines == 1 ? "" : "s") of text"
             } else {

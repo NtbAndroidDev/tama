@@ -6,6 +6,7 @@ import SwiftUI
 struct AppleMusicConsoleView: View {
     @ObservedObject private var media = MediaService.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var mediaSettings = MediaSettings.shared
 
     private var track: MediaTrack { media.currentTrack }
     private var isMusic: Bool { track.hasTrack && track.sourceBundleID == "com.apple.Music" }
@@ -41,7 +42,7 @@ struct AppleMusicConsoleView: View {
                         .foregroundStyle(DS.Palette.textPrimary)
                         .lineLimit(1)
                         .help(track.title)
-                    if state.audioQualityBadge, let quality = track.audioQuality {
+                    if mediaSettings.audioQualityBadge, let quality = track.audioQuality {
                         AudioQualityBadge(text: quality)
                     }
                 }

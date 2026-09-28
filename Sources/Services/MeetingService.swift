@@ -50,7 +50,7 @@ public final class MeetingService {
     /// Also called when the setting flips, so the countdown comes and goes at once.
     func tick() {
         let center = LiveActivityCenter.shared
-        guard AppState.shared.showMeetingCountdown,
+        guard HUDSettings.shared.showMeetingCountdown,
               EKEventStore.authorizationStatus(for: .event) == .fullAccess else {
             center.end("meeting")
             return
@@ -73,7 +73,7 @@ public final class MeetingService {
     private func show(_ next: Upcoming?, now: Date) {
         let center = LiveActivityCenter.shared
         // The setting may have been switched off while the fetch ran.
-        guard AppState.shared.showMeetingCountdown, let event = next else {
+        guard HUDSettings.shared.showMeetingCountdown, let event = next else {
             center.end("meeting")
             return
         }
@@ -109,7 +109,7 @@ public final class MeetingService {
             actionTitle: url == nil ? nil : "Join",
             action: join
         )
-        if AppState.shared.soundEffects { NSSound(named: "Purr")?.play() }
+        if GeneralSettings.shared.soundEffects { NSSound(named: "Purr")?.play() }
     }
 
     private nonisolated static func isDeclined(_ event: EKEvent) -> Bool {

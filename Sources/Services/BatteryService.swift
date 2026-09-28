@@ -60,7 +60,7 @@ public final class BatteryService: ObservableObject {
         SleepBlockerService.shared.powerSourceChanged()
         guard let now = Self.read() else { return }
         defer { last = now }
-        guard AppState.shared.showBatteryAlerts, let previous = last else { return }
+        guard HUDSettings.shared.showBatteryAlerts, let previous = last else { return }
 
         if now.onAC != previous.onAC {
             LiveActivityCenter.shared.post(LiveActivity(
@@ -120,7 +120,7 @@ public final class BatteryService: ObservableObject {
         let on = ProcessInfo.processInfo.isLowPowerModeEnabled
         guard on != isLowPowerModeOn else { return }
         isLowPowerModeOn = on
-        guard AppState.shared.showBatteryAlerts else { return }
+        guard HUDSettings.shared.showBatteryAlerts else { return }
         LiveActivityCenter.shared.post(LiveActivity(
             id: "battery",
             icon: on ? "leaf.fill" : "leaf",

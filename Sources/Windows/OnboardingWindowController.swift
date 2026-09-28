@@ -85,6 +85,8 @@ private enum OnboardingStep: Int, CaseIterable {
 private struct OnboardingView: View {
     let onFinish: () -> Void
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @ObservedObject private var permissions = PermissionService.shared
     @State private var step: OnboardingStep = .welcome
     /// Flips on the last step so its checkmark bounces once.
@@ -112,7 +114,7 @@ private struct OnboardingView: View {
             }
             .ignoresSafeArea()
         )
-        .tint(state.accentColor.color)
+        .tint(themeSettings.accentColor.color)
         .frame(width: 600, height: 520)
     }
 
@@ -139,7 +141,7 @@ private struct OnboardingView: View {
                     PreviewCardPicker([
                         PreviewCardOption(IslandStyle.notchAttached, "Notch", subtitle: "Carved black silhouette"),
                         PreviewCardOption(IslandStyle.floatingPill, "Island", subtitle: "Floating pill surface"),
-                    ], selection: $state.islandStyle, thumbnailHeight: 80) { style in
+                    ], selection: $generalSettings.islandStyle, thumbnailHeight: 80) { style in
                         DisplayStyleThumbnail(style: style)
                     }
                 }
@@ -209,7 +211,7 @@ private struct OnboardingView: View {
                             Text(item).font(.system(size: 12, weight: item == "Settings…" ? .semibold : .regular))
                                 .padding(.horizontal, 10).padding(.vertical, 3)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(item == "Settings…" ? state.accentColor.color : .clear,
+                                .background(item == "Settings…" ? themeSettings.accentColor.color : .clear,
                                             in: RoundedRectangle(cornerRadius: 5))
                         }
                     }
@@ -233,7 +235,7 @@ private struct OnboardingView: View {
                 Spacer()
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 64))
-                    .foregroundStyle(state.accentColor.color)
+                    .foregroundStyle(themeSettings.accentColor.color)
                     .symbolEffect(.bounce, value: celebrated)
                     .accessibilityHidden(true)
                 Text("You're all set!").font(.system(size: 30, weight: .bold, design: .rounded))
@@ -262,7 +264,7 @@ private struct OnboardingView: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(state.accentColor.color)
+                .foregroundStyle(themeSettings.accentColor.color)
                 .frame(width: 26, height: 26)
                 .background(Circle().fill(Color.white.opacity(0.08)))
                 .accessibilityHidden(true)
@@ -370,14 +372,14 @@ private struct OnboardingView: View {
 
     /// A short haptic flourish for the finale (on a Force Touch trackpad).
     private func celebrate() {
-        guard state.hapticFeedback else { return }
+        guard generalSettings.hapticFeedback else { return }
         let performer = NSHapticFeedbackManager.defaultPerformer
         for (index, pattern) in [NSHapticFeedbackManager.FeedbackPattern.levelChange, .alignment, .levelChange].enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 0.12) {
                 performer.perform(pattern, performanceTime: .now)
             }
         }
-        if state.soundEffects { NSSound(named: "Glass")?.play() }
+        if generalSettings.soundEffects { NSSound(named: "Glass")?.play() }
     }
 }
 
@@ -430,6 +432,8 @@ private struct DragDemo: View {
 /// person will find on the third page.
 private struct WidgetSampler: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var highlighted = 0
 
@@ -445,7 +449,7 @@ private struct WidgetSampler: View {
                     VStack(spacing: 5) {
                         Image(systemName: icon.0)
                             .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(index == highlighted ? state.accentColor.color : .white.opacity(0.75))
+                            .foregroundStyle(index == highlighted ? themeSettings.accentColor.color : .white.opacity(0.75))
                             .frame(width: 52, height: 52)
                             .background(Color.white.opacity(index == highlighted ? 0.14 : 0.07),
                                         in: RoundedRectangle(cornerRadius: 14, style: .continuous))

@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 // Settings › Shelf: the choices that shape the open shelf and how it behaves.
-// The stored values are @AppStorage properties in AppState's class body.
+// The stored values are in ShelfSettings (App/Settings).
 
 /// The Shelf's size preset (Settings › Shelf › The Shelf).
 public enum ShelfSize: String, CaseIterable, Identifiable, Sendable {

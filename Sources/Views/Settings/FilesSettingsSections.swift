@@ -8,19 +8,18 @@ import AppKit
 // MARK: - Quick Actions
 
 struct QuickActionsSettingsSection: View {
-    @ObservedObject private var state = AppState.shared
-    @ObservedObject private var quickshare = QuickshareService.shared
+    @ObservedObject private var fileActionSettings = FileActionSettings.shared
 
     var body: some View {
         SettingsSection("Quick Actions") {
             SettingsGroup {
                 SettingsToggleRow("Quick Actions",
                                   help: "While you drag files onto the Shelf, a Basket or the island, they unfold into tiles: drop on one to keep, AirDrop, convert, upload or email the files. Off, a drop simply lands.",
-                                  anchor: "general.quickActions", isOn: $state.quickActionsEnabled)
+                                  anchor: "general.quickActions", isOn: $fileActionSettings.quickActionsEnabled)
                 SettingsDivider()
                 Group {
                     SettingsRow("Quick Action tiles",
-                                subtitle: state.quickActionsEnabled ? nil : "Turn on Quick Actions to change the tiles.",
+                                subtitle: fileActionSettings.quickActionsEnabled ? nil : "Turn on Quick Actions to change the tiles.",
                                 help: "Keep is always first; choose up to three more. Quickshare uploads to 0x0.st and copies a link; iCloud Drive copies the files to iCloud Drive › Tama; Share Link makes a link for devices on your network.",
                                 anchor: "general.quickActionTiles")
                     QuickActionTileEditor()
@@ -31,14 +30,14 @@ struct QuickActionsSettingsSection: View {
                                 help: "Choose which app opens for the Mail quick action. Default uses the system's mail app.",
                                 anchor: "general.mailApp")
                     ChoiceTiles(QuickActionMailApp.allCases.map { .init($0, $0.title, icon: $0.icon) },
-                                selection: $state.quickActionMailApp)
+                                selection: $fileActionSettings.quickActionMailApp)
                 }
-                .settingsDisabled(!state.quickActionsEnabled)
+                .settingsDisabled(!fileActionSettings.quickActionsEnabled)
             }
             SettingsGroup {
                 SettingsToggleRow("Require upload confirmation",
                                   subtitle: "Ask before uploading. Quickshare files expire automatically (30–365 days, depending on size).",
-                                  anchor: "general.quickshareConfirm", isOn: $state.quickshareConfirm)
+                                  anchor: "general.quickshareConfirm", isOn: $fileActionSettings.quickshareConfirm)
                 SettingsDivider()
                 RecentUploadsRow()
             }
@@ -178,16 +177,20 @@ private struct RecentUploadsRow: View {
                         subtitle: quickshare.uploads.isEmpty ? "No shared files yet" : "\(quickshare.uploads.count) shared file\(quickshare.uploads.count == 1 ? "" : "s")",
                         help: "Everything Quickshare uploaded: copy a link again, take it off this list, or delete the file from 0x0.st.",
                         anchor: "general.uploads") {
-                HStack(spacing: 8) {
-                    Button("Upload File…") { quickshare.chooseAndUpload() }
-                    Button("Upload from Clipboard") { quickshare.uploadFromClipboard() }
-                        .help("Upload whatever is on the clipboard right now — files, an image or text — and copy the link back.")
-                    Button(isOpen ? "Done" : "Manage Uploads") {
-                        withAnimation(DS.Motion.respecting(reduceMotion, DS.Motion.disclose)) { isOpen.toggle() }
-                    }
-                    .disabled(quickshare.uploads.isEmpty && !isOpen)
+                Button(isOpen ? "Done" : "Manage Uploads") {
+                    withAnimation(DS.Motion.respecting(reduceMotion, DS.Motion.disclose)) { isOpen.toggle() }
                 }
+                .disabled(quickshare.uploads.isEmpty && !isOpen)
             }
+            // On their own line, so the title keeps its width in a narrow window.
+            HStack(spacing: 8) {
+                Button("Upload File…") { quickshare.chooseAndUpload() }
+                Button("Upload from Clipboard") { quickshare.uploadFromClipboard() }
+                    .help("Upload whatever is on the clipboard right now — files, an image or text — and copy the link back.")
+            }
+            .controlSize(.small)
+            .padding(.horizontal, SettingsStyle.rowPadding.leading)
+            .padding(.bottom, SettingsStyle.rowPadding.bottom)
             if isOpen {
                 VStack(spacing: 0) {
                     ForEach(quickshare.uploads) { upload in
@@ -257,17 +260,17 @@ private struct RecentUploadsRow: View {
 // MARK: - Conversion
 
 struct ConversionSettingsSection: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var fileActionSettings = FileActionSettings.shared
 
     private var destinationName: String {
-        state.convertDestination.isEmpty ? "Downloads" : FileManager.default.displayName(atPath: state.convertDestination)
+        fileActionSettings.convertDestination.isEmpty ? "Downloads" : FileManager.default.displayName(atPath: fileActionSettings.convertDestination)
     }
 
     var body: some View {
         SettingsSection("Conversion", subtitle: "Convert files on your Mac, never in the cloud.") {
             SettingsGroup {
                 SettingsRow("Destination folder",
-                            subtitle: state.smartExportEnabled && state.smartExportConverted
+                            subtitle: fileActionSettings.smartExportEnabled && fileActionSettings.smartExportConverted
                                 ? "Smart Export is on: converted files go to its Converted folder."
                                 : "Converted files go to \(destinationName).",
                             help: "Choose where converted files are saved.",
@@ -275,11 +278,11 @@ struct ConversionSettingsSection: View {
                     HStack(spacing: 8) {
                         Button("Choose…") {
                             if let folder = FileOperations.chooseFolder(prompt: "Choose", message: "Choose where converted files are saved") {
-                                state.convertDestination = folder.path
+                                fileActionSettings.convertDestination = folder.path
                             }
                         }
-                        if !state.convertDestination.isEmpty {
-                            Button("Downloads") { state.convertDestination = "" }
+                        if !fileActionSettings.convertDestination.isEmpty {
+                            Button("Downloads") { fileActionSettings.convertDestination = "" }
                         }
                     }
                 }
@@ -287,7 +290,7 @@ struct ConversionSettingsSection: View {
                 SettingsRow("After converting",
                             help: "Show the new files in Finder, open the destination folder, add them to the Shelf, or only show the completion banner.",
                             anchor: "general.afterConvert")
-                ChoiceTiles(AfterConvertAction.allCases.map { .init($0, $0.title) }, selection: $state.afterConvertAction)
+                ChoiceTiles(AfterConvertAction.allCases.map { .init($0, $0.title) }, selection: $fileActionSettings.afterConvertAction)
             }
         }
     }
@@ -296,11 +299,12 @@ struct ConversionSettingsSection: View {
 // MARK: - Automation
 
 struct AutomationSettingsSection: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var fileActionSettings = FileActionSettings.shared
+    @ObservedObject private var traySettings = TraySettings.shared
 
     /// Read from the stored list, so adding a folder redraws the level row.
     private var folders: [TrackedFolder] {
-        state.trackedFoldersEnabled ? TrackedFolder.decode(state.trackedFoldersStorage) : []
+        fileActionSettings.trackedFoldersEnabled ? TrackedFolder.decode(fileActionSettings.trackedFoldersStorage) : []
     }
 
     var body: some View {
@@ -308,18 +312,18 @@ struct AutomationSettingsSection: View {
             SettingsGroup {
                 SettingsToggleRow("Auto-copy OCR text",
                                   help: "Text the OCR droplet or a Tray preview reads from an image or PDF is copied to the clipboard right away, and kept in its history.",
-                                  anchor: "general.autoCopyOCR", isOn: $state.autoCopyOCRText)
+                                  anchor: "general.autoCopyOCR", isOn: $traySettings.autoCopyOCRText)
                 SettingsDivider()
                 SettingsToggleRow("Smart Export",
                                   help: "Automatically save processed files to designated folders: compressed images, videos and PDFs; converted files (PNG → JPEG, etc.); background-removed images.",
-                                  anchor: "general.smartExport", isOn: $state.smartExportEnabled)
-                if state.smartExportEnabled {
+                                  anchor: "general.smartExport", isOn: $fileActionSettings.smartExportEnabled)
+                if fileActionSettings.smartExportEnabled {
                     SettingsDivider()
                     SettingsRow("Folder", subtitle: SmartExport.baseFolder.path, icon: "folder") {
                         HStack(spacing: 8) {
                             Button("Choose…") {
                                 if let folder = FileOperations.chooseFolder(prompt: "Choose", message: "Processed files will be saved automatically in folders inside this one.") {
-                                    state.smartExportFolder = folder.path
+                                    fileActionSettings.smartExportFolder = folder.path
                                 }
                             }
                             Button("Show in Finder") {
@@ -329,22 +333,22 @@ struct AutomationSettingsSection: View {
                         }
                     }
                     ToggleTiles([
-                        ToggleTile("Compressed", icon: "arrow.down.right.and.arrow.up.left", isOn: $state.smartExportCompressed),
-                        ToggleTile("Converted", icon: "arrow.triangle.2.circlepath", isOn: $state.smartExportConverted),
-                        ToggleTile("Background removed", icon: "person.crop.rectangle", isOn: $state.smartExportCutouts),
+                        ToggleTile("Compressed", icon: "arrow.down.right.and.arrow.up.left", isOn: $fileActionSettings.smartExportCompressed),
+                        ToggleTile("Converted", icon: "arrow.triangle.2.circlepath", isOn: $fileActionSettings.smartExportConverted),
+                        ToggleTile("Background removed", icon: "person.crop.rectangle", isOn: $fileActionSettings.smartExportCutouts),
                     ])
                 }
                 SettingsDivider()
                 SettingsToggleRow("Tracked folders",
                                   help: "Watch and process files from selected folders. Each folder says what a new file does: join the Tray, go to a Basket, or be compressed as it lands. A file counts once it has finished writing; partial downloads are skipped.",
-                                  anchor: "general.trackedFolders", isOn: $state.trackedFoldersEnabled)
-                if state.trackedFoldersEnabled {
+                                  anchor: "general.trackedFolders", isOn: $fileActionSettings.trackedFoldersEnabled)
+                if fileActionSettings.trackedFoldersEnabled {
                     TrackedFoldersList()
                     if folders.contains(where: { $0.action == .compress }) {
                         SettingsRow("Compression level",
                                     subtitle: "Used by folders set to Add and compress, which run unattended.",
                                     anchor: "general.trackedFoldersLevel") {
-                            Picker("Compression level", selection: $state.trackedFoldersCompressionLevel) {
+                            Picker("Compression level", selection: $fileActionSettings.trackedFoldersCompressionLevel) {
                                 ForEach(CompressionLevel.allCases) { Text($0.title).tag($0) }
                             }
                             .labelsHidden()
@@ -358,12 +362,12 @@ struct AutomationSettingsSection: View {
 }
 
 private struct TrackedFoldersList: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var fileActionSettings = FileActionSettings.shared
 
     /// Decoded from the stored value rather than read once, so the list
     /// redraws when a folder is added, removed or given another action.
     private var folders: [TrackedFolder] {
-        TrackedFolder.decode(state.trackedFoldersStorage)
+        TrackedFolder.decode(fileActionSettings.trackedFoldersStorage)
     }
 
     var body: some View {
@@ -415,25 +419,25 @@ private struct TrackedFoldersList: View {
 // MARK: - Background removal
 
 struct BackgroundRemovalSettingsSection: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var fileActionSettings = FileActionSettings.shared
 
     var body: some View {
         SettingsSection("Background removal",
                         subtitle: "Remove Background in the Shelf and Basket menus uses Vision, on your Mac. Results are PNGs with transparency kept.") {
             SettingsGroup {
                 SettingsRow("Backdrop", anchor: "general.cutoutStyle")
-                ChoiceTiles(CutoutBackground.allCases.map { .init($0, $0.title) }, selection: $state.cutoutBackground)
+                ChoiceTiles(CutoutBackground.allCases.map { .init($0, $0.title) }, selection: $fileActionSettings.cutoutBackground)
                 SettingsDivider()
-                SettingsSlider("Padding", value: $state.cutoutPadding, in: 0...0.4, step: 0.02, defaultValue: 0,
+                SettingsSlider("Padding", value: $fileActionSettings.cutoutPadding, in: 0...0.4, step: 0.02, defaultValue: 0,
                                help: "Trims to the subject and adds this much space around it. 0 keeps the whole frame.") {
                     $0 == 0 ? "None" : "\(Int(($0 * 100).rounded()))%"
                 }
                 SettingsDivider()
-                SettingsSlider("Corner radius", value: $state.cutoutCornerRadius, in: 0...0.5, step: 0.02, defaultValue: 0) {
+                SettingsSlider("Corner radius", value: $fileActionSettings.cutoutCornerRadius, in: 0...0.5, step: 0.02, defaultValue: 0) {
                     $0 == 0 ? "Square" : "\(Int(($0 * 100).rounded()))%"
                 }
                 SettingsDivider()
-                SettingsToggleRow("Shadow", subtitle: "A soft drop shadow under the subject.", isOn: $state.cutoutShadow)
+                SettingsToggleRow("Shadow", subtitle: "A soft drop shadow under the subject.", isOn: $fileActionSettings.cutoutShadow)
             }
         }
     }
@@ -556,14 +560,14 @@ struct IntegrationsSettingsSection: View {
 
 /// Settings › Shelf › Tray: Auto-cleanup and Two Stacks.
 struct ShelfFileRows: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var traySettings = TraySettings.shared
 
     var body: some View {
         SettingsRow("Auto-cleanup",
-                    subtitle: "Auto-remove non-pinned shelf files after this long. Pinned files stay; a clock badge marks files that expire soon.",
-                    help: "Choose how long shelf files are kept. Smart expiration tracking counts from when each file was added.",
+                    subtitle: "Auto-remove unpinned Tray files after this long. Pinned files stay; a clock badge marks files that expire soon.",
+                    help: "Choose how long Tray files are kept. Smart expiration tracking counts from when each file was added.",
                     anchor: "shelf.autoCleanup") {
-            Picker("Auto-cleanup", selection: $state.trayExpiry) {
+            Picker("Auto-cleanup", selection: $traySettings.expiry) {
                 ForEach(TrayExpiry.allCases) { Text($0.title).tag($0) }
             }
             .labelsHidden()
@@ -572,7 +576,7 @@ struct ShelfFileRows: View {
         SettingsDivider()
         SettingsToggleRow("Two Stacks",
                           subtitle: "Keep two separate stacks of files; the 1 | 2 pill on the Tray switches between them.",
-                          anchor: "shelf.twoStacks", isOn: $state.trayTwoStacks)
+                          anchor: "shelf.twoStacks", isOn: $traySettings.twoStacks)
     }
 }
 
@@ -580,28 +584,29 @@ struct ShelfFileRows: View {
 
 struct BasketSettingsPage: View {
     @ObservedObject var state = AppState.shared
+    @ObservedObject private var basketSettings = BasketSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             SettingsSection("Floating Basket") {
                 SettingsGroup {
-                    SettingsToggleRow("Floating Basket", icon: "basket.fill",
-                                      help: "Turn floating basket mode on or off: a detachable basket that floats above every app and space, so you can gather files from anywhere. Bring a Basket to your drag by shaking it.",
+                    SettingsToggleRow("Floating Basket", subtitle: "Shows or hides the Basket now; its files stay.", icon: "basket.fill",
+                                      help: "A detachable basket that floats above every app and Space, so you can gather files from anywhere. This switch shows or hides it right now; shaking a drag, Instant appear or the Summon Basket shortcut bring it back.",
                                       anchor: "basket.show", isOn: $state.isBasketVisible)
                     ToggleTiles([
-                        ToggleTile("Instant appear", icon: "bolt.fill", isOn: $state.basketInstantAppear),
-                        ToggleTile("Auto-hide", icon: "eye.slash", isOn: $state.basketAutoHide),
+                        ToggleTile("Instant appear", icon: "bolt.fill", isOn: $basketSettings.instantAppear),
+                        ToggleTile("Auto-hide", icon: "eye.slash", isOn: $basketSettings.autoHide),
                     ], anchor: "basket.instant")
-                    if state.basketInstantAppear {
+                    if basketSettings.instantAppear {
                         SettingsDivider()
-                        SettingsSlider("Instant delay", value: $state.basketInstantDelay, in: 0...1.5, step: 0.05, defaultValue: 0.35,
+                        SettingsSlider("Instant delay", value: $basketSettings.instantDelay, in: 0...1.5, step: 0.05, defaultValue: 0.35,
                                        help: "How long a file drag lasts before the Basket appears on its own, no shake needed.") {
                             String(format: "%.2f s", $0)
                         }
                     }
-                    if state.basketAutoHide {
+                    if basketSettings.autoHide {
                         SettingsDivider()
-                        SettingsSlider("Hide after", value: $state.basketAutoHideDelay, in: 1...15, step: 0.5, defaultValue: 3,
+                        SettingsSlider("Hide after", value: $basketSettings.autoHideDelay, in: 1...15, step: 0.5, defaultValue: 3,
                                        help: "How long the Basket waits before hiding once it's idle: no drag going on and the pointer away from it. Its files are kept.") {
                             String(format: "%.1f s", $0)
                         }
@@ -609,16 +614,17 @@ struct BasketSettingsPage: View {
                     SettingsDivider()
                     SettingsToggleRow("Shake to summon",
                                       subtitle: "Shake a file drag and the Basket appears beside the pointer.",
-                                      anchor: "basket.shake", isOn: $state.jiggleToOpenBasket)
+                                      anchor: "basket.shake", isOn: $basketSettings.jiggleToOpenBasket)
                     SettingsDivider()
-                    SettingsSlider("Shake sensitivity", value: $state.basketShakeSensitivity, in: 0...1, step: 0.25, defaultValue: 0.5,
+                    SettingsSlider("Shake sensitivity", value: $basketSettings.shakeSensitivity, in: 0...1, step: 0.25, defaultValue: 0.5,
                                    help: "How much shaking brings the Basket: higher needs only a small, quick shake.",
-                                   anchor: "basket.sensitivity") { JiggleService.sensitivityLabel($0) }
-                        .settingsDisabled(!state.jiggleToOpenBasket)
+                                   anchor: "basket.sensitivity",
+                                   subtitle: basketSettings.jiggleToOpenBasket ? nil : "Needs Shake to summon.") { JiggleService.sensitivityLabel($0) }
+                        .settingsDisabled(!basketSettings.jiggleToOpenBasket)
                     SettingsDivider()
                     ModifierRecorderRow("Drag shortcut",
                                         help: "Press this while dragging to reveal the basket. Record a modifier combination, such as ⌥ Option.",
-                                        anchor: "basket.dragShortcut", flags: $state.basketDragModifiers)
+                                        anchor: "basket.dragShortcut", flags: $basketSettings.dragModifiers)
                     SettingsDivider()
                     ShortcutRecorderRow(.toggleBasket, title: "Summon Basket", anchor: "basket.shortcut")
                 }
@@ -632,7 +638,7 @@ struct BasketSettingsPage: View {
                     ChoiceTiles([
                         .init(BasketMode.single, "Single Basket", icon: "tray"),
                         .init(BasketMode.multi, "Multi-Basket", icon: "square.stack.3d.up.fill"),
-                    ], selection: $state.basketMode)
+                    ], selection: $basketSettings.mode)
                     SettingsDivider()
                     ShortcutRecorderRow(.basketSwitcher,
                                         help: "Shortcut to show all baskets and switch between them.",
@@ -640,7 +646,7 @@ struct BasketSettingsPage: View {
                     SettingsDivider()
                     SettingsToggleRow("Second bucket",
                                       subtitle: "Add a second bucket for rarely used items; the Main | 2nd pill in the Basket switches.",
-                                      anchor: "basket.secondBucket", isOn: $state.basketSecondBucket)
+                                      anchor: "basket.secondBucket", isOn: $basketSettings.secondBucket)
                 }
             }
         }

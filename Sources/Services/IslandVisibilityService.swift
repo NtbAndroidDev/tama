@@ -25,7 +25,7 @@ public final class IslandVisibilityService {
     /// Starts or stops the monitors to match the settings and the hidden state.
     public func sync() {
         let state = AppState.shared
-        let hidden = state.isIslandHidden || state.holdToReveal
+        let hidden = state.isIslandHidden || GeneralSettings.shared.holdToReveal
 
         if hidden, globalRightClick == nil {
             globalRightClick = NSEvent.addGlobalMonitorForEvents(matching: .rightMouseDown) { _ in
@@ -43,13 +43,13 @@ public final class IslandVisibilityService {
             localRightClick = nil
         }
 
-        if hidden, state.holdToReveal, holdTimer == nil {
+        if hidden, GeneralSettings.shared.holdToReveal, holdTimer == nil {
             let timer = Timer(timeInterval: 0.08, repeats: true) { _ in
                 MainActor.assumeIsolated { IslandVisibilityService.shared.pollModifiers() }
             }
             RunLoop.main.add(timer, forMode: .common)
             holdTimer = timer
-        } else if !(hidden && state.holdToReveal) {
+        } else if !(hidden && GeneralSettings.shared.holdToReveal) {
             holdTimer?.invalidate()
             holdTimer = nil
             if state.isHoldRevealing { state.isHoldRevealing = false }
@@ -73,9 +73,9 @@ public final class IslandVisibilityService {
 
     private func handleRightClick(at point: NSPoint) {
         let state = AppState.shared
-        guard state.isIslandHidden, state.rightClickToReveal,
+        guard state.isIslandHidden, GeneralSettings.shared.rightClickToReveal,
               let screen = NSScreen.screens.first(where: { NSMouseInRect(point, $0.frame, false) }),
-              screen == state.getTargetScreen() || state.displayTargetMode == .all
+              screen == state.getTargetScreen() || DisplaySettings.shared.displayTargetMode == .all
         else { return }
         // Where the resting island sits, with some slack: it's invisible, so
         // the click can't be expected to land on its exact outline.
@@ -90,7 +90,7 @@ public final class IslandVisibilityService {
 
     private func pollModifiers() {
         let state = AppState.shared
-        let wanted = state.holdToRevealModifier.eventFlags
+        let wanted = GeneralSettings.shared.holdToRevealModifier.eventFlags
         let held = NSEvent.modifierFlags.intersection([.command, .option, .control, .shift]) == wanted
         if state.isHoldRevealing != held {
             withAnimation(DS.Motion.respecting(DS.Motion.reduceMotion, held ? DS.Motion.morphOpen : DS.Motion.morphClose)) {

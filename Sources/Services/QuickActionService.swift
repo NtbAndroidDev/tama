@@ -4,13 +4,13 @@ extension AppState {
     /// The drop tiles as configured: Keep, then up to three chosen tiles.
     /// Quick Actions off leaves only Keep, so a drop simply lands.
     public var quickActions: [QuickAction] {
-        guard quickActionsEnabled else { return [.keep] }
-        return [.keep] + QuickAction.tiles(from: quickActionTilesStorage)
+        guard FileActionSettings.shared.quickActionsEnabled else { return [.keep] }
+        return [.keep] + QuickAction.tiles(from: FileActionSettings.shared.quickActionTilesStorage)
     }
 
     public var quickActionTiles: [QuickAction] {
-        get { QuickAction.tiles(from: quickActionTilesStorage) }
-        set { quickActionTilesStorage = QuickAction.storage(for: newValue) }
+        get { QuickAction.tiles(from: FileActionSettings.shared.quickActionTilesStorage) }
+        set { FileActionSettings.shared.quickActionTilesStorage = QuickAction.storage(for: newValue) }
     }
 }
 
@@ -79,7 +79,7 @@ public enum QuickActionRunner {
     /// them attached.
     static func mail(_ urls: [URL]) {
         let state = AppState.shared
-        let choice = state.quickActionMailApp
+        let choice = FileActionSettings.shared.quickActionMailApp
         if let bundleID = choice.bundleID {
             guard let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
                 state.showNotification(appName: "Mail", title: "\(choice.title) isn't installed",

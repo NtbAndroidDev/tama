@@ -32,12 +32,11 @@ final class ClipboardBrowser: ObservableObject {
     private init() {}
 
     func clips(from items: [ClipboardItem]) -> [ClipboardItem] {
-        let state = AppState.shared
         var result = items
         if let board { result = result.filter { $0.board == board } }
-        if let tag, state.clipboardTagsEnabled { result = result.filter { $0.tags.contains(tag) } }
+        if let tag, ClipboardSettings.shared.tagsEnabled { result = result.filter { $0.tags.contains(tag) } }
         // With the rail hidden there's no way to see or change the filter.
-        if state.clipboardTypeFilters { result = result.filter(kind.matches) }
+        if ClipboardSettings.shared.typeFilters { result = result.filter(kind.matches) }
         if !query.isEmpty {
             result = result.filter {
                 // An image clip's content is just its stored filename.
@@ -226,13 +225,13 @@ enum ClipboardEmptyState {
         if !browser.query.isEmpty {
             return ("magnifyingglass", "No clipboard matches", "Try a different search.")
         }
-        if let tag = browser.tag, AppState.shared.clipboardTagsEnabled {
+        if let tag = browser.tag, ClipboardSettings.shared.tagsEnabled {
             return ("tag", "No items with this tag", "Assign \u{201C}\(tag)\u{201D} to items to collect them here.")
         }
         if browser.board != nil {
             return ("pin", "Pinboard is empty", "Pin items to this pinboard to see them here.")
         }
-        if browser.kind != .all, AppState.shared.clipboardTypeFilters {
+        if browser.kind != .all, ClipboardSettings.shared.typeFilters {
             return (browser.kind.iconName, "No \(browser.kind.title.lowercased())",
                     browser.kind == .favorites ? "Star an item to keep it here." : "Things you copy will appear here.")
         }
@@ -254,6 +253,7 @@ struct ClipMenu: View {
     var onRename: (() -> Void)?
 
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var clipboardSettings = ClipboardSettings.shared
 
     private var ids: Set<UUID> { Set(targets.map(\.id)) }
     private var isBulk: Bool { targets.count > 1 }
@@ -271,7 +271,7 @@ struct ClipMenu: View {
         Button {
             if state.copyClipboardItems(targets) { DroppyAudio.playCopySuccess() }
         } label: { Label(isBulk ? "Copy \(targets.count) Items" : "Copy", systemImage: "doc.on.doc") }
-        if state.clipboardCopyFavorite, !isBulk {
+        if clipboardSettings.copyFavorite, !isBulk {
             Button { state.copyAndFavorite(item) } label: { Label("Copy + Favorite", systemImage: "star.square.on.square") }
         }
         if !isBulk, item.type == .url, let url = URL(string: item.previewText) {
@@ -304,7 +304,7 @@ struct ClipMenu: View {
         if targets.contains(where: { $0.board != nil }) {
             Button { state.assign(ids, to: nil) } label: { Label("Remove from Pinboard", systemImage: "pin.slash") }
         }
-        if state.clipboardTagsEnabled {
+        if clipboardSettings.tagsEnabled {
             Menu {
                 ForEach(state.clipboardTags) { tag in
                     Button { state.toggleClipTag(tag.name, on: ids) } label: {
@@ -453,6 +453,7 @@ struct ClipTagChips: View {
     let tags: [String]
     var compact = false
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var clipboardSettings = ClipboardSettings.shared
 
     var body: some View {
         HStack(spacing: 4) {

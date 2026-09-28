@@ -7,6 +7,7 @@ import AppKit
 /// "Open in Settings" lands on the exact row.
 struct UserGuideView: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @ObservedObject var model: UserGuideModel
     @FocusState private var searchFocused: Bool
 
@@ -29,7 +30,7 @@ struct UserGuideView: View {
             }
             .ignoresSafeArea()
         )
-        .tint(state.accentColor.color)
+        .tint(themeSettings.accentColor.color)
         .onAppear { searchFocused = true }
         // ⌘F puts the caret back in the search field from anywhere in the window.
         .background {
@@ -160,13 +161,14 @@ private struct GuideSidebarRow: View {
     let action: () -> Void
     @State private var isHovered = false
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 9) {
                 Image(systemName: article.icon)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(isSelected ? state.accentColor.color : .secondary)
+                    .foregroundStyle(isSelected ? themeSettings.accentColor.color : .secondary)
                     .frame(width: 18)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 1) {
@@ -207,6 +209,7 @@ private struct GuideArticleView: View {
     /// The search query, so the matching words can be picked out in the body.
     let highlight: String
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 26) {
@@ -215,7 +218,7 @@ private struct GuideArticleView: View {
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
-                    .background(Circle().fill(state.accentColor.color.gradient))
+                    .background(Circle().fill(themeSettings.accentColor.color.gradient))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(article.title).font(.system(size: 22, weight: .bold))
@@ -228,7 +231,7 @@ private struct GuideArticleView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(section.title)
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(state.accentColor.color)
+                        .foregroundStyle(themeSettings.accentColor.color)
                         .accessibilityAddTraits(.isHeader)
                     ForEach(section.blocks) { block in
                         GuideBlockView(block: block, highlight: highlight)

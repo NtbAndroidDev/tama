@@ -145,7 +145,7 @@ public final class TimerService: ObservableObject {
         AppState.shared.showNotification(appName: "Timer", title: "Time's up", message: "\(length) timer finished",
                                          actionTitle: "Again", action: { TimerService.shared.start() })
         SystemNotifier.post(title: "Time's up", body: "\(length) timer finished")
-        if AppState.shared.soundEffects { NSSound(named: "Glass")?.play() }
+        if GeneralSettings.shared.soundEffects { NSSound(named: "Glass")?.play() }
         displaySeconds = duration
     }
 

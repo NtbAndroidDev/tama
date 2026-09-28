@@ -9,6 +9,7 @@ import AppKit
 /// the next event, each only when it has something to say.
 struct LockScreenStatusRow: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var lockScreenSettings = LockScreenSettings.shared
     @ObservedObject private var monitor = SystemMonitorService.shared
     @ObservedObject private var weather = WeatherService.shared
     @ObservedObject private var headphones = HeadphoneBatteryService.shared
@@ -26,22 +27,22 @@ struct LockScreenStatusRow: View {
 
     var body: some View {
         TimelineView(.everyMinute) { context in
-            HStack(spacing: state.lockScreenWidgetStyle == .inline ? 30 : 16) {
-                if state.lockScreenShowsBattery, monitor.hasBattery {
+            HStack(spacing: lockScreenSettings.widgetStyle == .inline ? 30 : 16) {
+                if lockScreenSettings.showsBattery, monitor.hasBattery {
                     LockScreenStatusItem(
                         symbol: monitor.isCharging ? "laptopcomputer.and.arrow.down" : "laptopcomputer",
                         value: "\(monitor.batteryLevel)%",
                         detail: monitor.isCharging ? "Charging" : nil
                     )
                 }
-                if state.lockScreenShowsHeadphones, let buds = headphones.battery, let level = buds.level {
+                if lockScreenSettings.showsHeadphones, let buds = headphones.battery, let level = buds.level {
                     LockScreenStatusItem(
                         symbol: buds.name.localizedCaseInsensitiveContains("airpods") ? "airpods" : "headphones",
                         value: "\(level)%",
                         detail: buds.detail
                     )
                 }
-                if state.lockScreenShowsWeather, let now = weather.snapshot {
+                if lockScreenSettings.showsWeather, let now = weather.snapshot {
                     if let aqi = now.aqi {
                         LockScreenStatusItem(symbol: "aqi.medium", value: "AQI \(aqi)", detail: now.aqiLabel)
                     }
@@ -54,7 +55,7 @@ struct LockScreenStatusRow: View {
                         )
                     }
                 }
-                if state.lockScreenShowsNextEvent, let event = nextEvent {
+                if lockScreenSettings.showsNextEvent, let event = nextEvent {
                     LockScreenStatusItem(symbol: "calendar", value: event.title, detail: when(event), valueMaxWidth: 260)
                 }
             }
@@ -85,6 +86,7 @@ struct LockScreenStatusItem: View {
     let detail: String?
     var valueMaxWidth: CGFloat? = nil
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var lockScreenSettings = LockScreenSettings.shared
 
     init(symbol: String, value: String, detail: String?, valueMaxWidth: CGFloat? = nil) {
         self.symbol = symbol
@@ -94,10 +96,10 @@ struct LockScreenStatusItem: View {
     }
 
     /// Light look: dark text (on light tiles); dark look: white text.
-    private var ink: Color { state.lockScreenWidgetLook == .light && state.lockScreenWidgetStyle == .rounded ? .black : .white }
+    private var ink: Color { lockScreenSettings.widgetLook == .light && lockScreenSettings.widgetStyle == .rounded ? .black : .white }
 
     var body: some View {
-        switch state.lockScreenWidgetStyle {
+        switch lockScreenSettings.widgetStyle {
         case .inline: inline
         case .vertical: vertical.foregroundStyle(ink).shadow(color: .black.opacity(0.35), radius: 6, y: 1)
         case .rounded:
@@ -106,7 +108,7 @@ struct LockScreenStatusItem: View {
                 .frame(minWidth: 96)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(LockSurface(material: state.lockScreenWidgetMaterial, look: state.lockScreenWidgetLook,
+                .background(LockSurface(material: lockScreenSettings.widgetMaterial, look: lockScreenSettings.widgetLook,
                                         cornerRadius: 22))
                 .accessibilityElement(children: .combine)
         }
@@ -249,7 +251,7 @@ struct LockScreenPlayer: View {
         .foregroundStyle(.white)
         .padding(18)
         // Settings › Lock screen › Media HUD material.
-        .background(LockSurface(material: AppState.shared.lockScreenMediaMaterial, look: .dark, cornerRadius: 28))
+        .background(LockSurface(material: LockScreenSettings.shared.mediaMaterial, look: .dark, cornerRadius: 28))
     }
 
     private func control(_ symbol: String, size: CGFloat, help: String, action: @escaping () -> Void) -> some View {
@@ -314,18 +316,19 @@ struct LockScreenControls: View {
     static let size = CGSize(width: 440, height: 54)
 
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var lockScreenSettings = LockScreenSettings.shared
     @ObservedObject private var outputs = AudioOutputService.shared
     @State private var brightness: Double = BrightnessService.shared.brightness ?? 0.5
 
     var body: some View {
         HStack(spacing: 18) {
-            if state.lockScreenVolumeSlider {
+            if lockScreenSettings.volumeSlider {
                 slider(icon: IslandHUD.Kind.volume.iconName(for: outputs.isMuted ? 0 : outputs.volume, isMuted: outputs.isMuted),
                        label: "Volume",
                        value: Binding(get: { outputs.isMuted ? 0 : outputs.volume }, set: { outputs.setVolume($0) }))
                     .disabled(!outputs.canSetVolume)
             }
-            if state.lockScreenBrightnessSlider {
+            if lockScreenSettings.brightnessSlider {
                 slider(icon: IslandHUD.Kind.brightness.iconName(for: brightness, isMuted: false),
                        label: "Brightness",
                        value: Binding(get: { brightness }, set: { level in
@@ -339,7 +342,7 @@ struct LockScreenControls: View {
         .tint(.white)
         .padding(.horizontal, 18)
         .frame(width: Self.size.width, height: Self.size.height)
-        .background(LockSurface(material: state.lockScreenMediaMaterial, look: .dark, cornerRadius: Self.size.height / 2))
+        .background(LockSurface(material: lockScreenSettings.mediaMaterial, look: .dark, cornerRadius: Self.size.height / 2))
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             // Brightness has no change notification; follow the keys.
             guard let now = BrightnessService.shared.brightness, abs(now - brightness) > 0.005 else { return }

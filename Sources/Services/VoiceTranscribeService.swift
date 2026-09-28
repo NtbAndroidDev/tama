@@ -152,7 +152,7 @@ public final class VoiceTranscribeService: ObservableObject {
     /// Where Speech will run with the chosen engine, or nil when the engine
     /// can't handle this language (On-device only without a local model).
     public var effectiveOnDevice: Bool? {
-        switch AppState.shared.voiceEngine {
+        switch VoiceSettings.shared.engine {
         case .auto: isOnDevice
         case .onDevice: isOnDevice ? true : nil
         case .server: false
@@ -231,7 +231,7 @@ public final class VoiceTranscribeService: ObservableObject {
     /// Brings the recorder on screen where Settings says.
     public func presentRecorder() {
         // With the shelf switched off there's no inline recorder to open.
-        if AppState.shared.voiceFloatingRecorder || !AppState.shared.shelfEnabled {
+        if VoiceSettings.shared.floatingRecorder || !ShelfSettings.shared.isEnabled {
             VoiceRecorderPanelController.shared.show()
         } else {
             let state = AppState.shared
@@ -317,7 +317,7 @@ public final class VoiceTranscribeService: ObservableObject {
         levels = Array(repeating: 0, count: Self.levelHistory)
         // Live transcription streams as you talk; otherwise the saved file is
         // transcribed after Stop, with progress.
-        if speechAccess == .granted, AppState.shared.voiceLiveTranscription, effectiveOnDevice != nil {
+        if speechAccess == .granted, VoiceSettings.shared.liveTranscription, effectiveOnDevice != nil {
             startRecognitionTask()
         }
 
@@ -347,7 +347,7 @@ public final class VoiceTranscribeService: ObservableObject {
         self.ticker = ticker
         publishActivity()
         updateStatusItem()
-        if AppState.shared.soundEffects { NSSound(named: "Tink")?.play() }
+        if GeneralSettings.shared.soundEffects { NSSound(named: "Tink")?.play() }
     }
 
     public func stopRecording() {
@@ -357,7 +357,7 @@ public final class VoiceTranscribeService: ObservableObject {
         LiveActivityCenter.shared.end("voiceTranscribe")
         removeStatusItem()
         phase = .finishing
-        if AppState.shared.soundEffects { NSSound(named: "Pop")?.play() }
+        if GeneralSettings.shared.soundEffects { NSSound(named: "Pop")?.play() }
         guard tasks[currentGeneration] != nil else { return finishSession() }
         // Speech normally finalizes within a second; don't hang on it forever.
         let work = DispatchWorkItem { VoiceTranscribeService.shared.finishSession() }
@@ -402,7 +402,7 @@ public final class VoiceTranscribeService: ObservableObject {
         if !transcript.isEmpty {
             // Live transcription already has the text.
             transcriptionFinished(for: recording.id)
-        } else if speechAccess == .granted, !AppState.shared.voiceLiveTranscription {
+        } else if speechAccess == .granted, !VoiceSettings.shared.liveTranscription {
             retranscribe(recording)
         }
     }
@@ -627,7 +627,7 @@ public final class VoiceTranscribeService: ObservableObject {
     /// result card, and apply Delete audio after transcription.
     private func transcriptionFinished(for recordingID: UUID?) {
         let state = AppState.shared
-        if let recordingID, state.voiceRetention == .deleteAudio,
+        if let recordingID, VoiceSettings.shared.retention == .deleteAudio,
            let index = recents.firstIndex(where: { $0.id == recordingID }), recents[index].hasAudio {
             if playingID == recordingID { stopPlayback() }
             try? FileManager.default.removeItem(at: recents[index].url)
@@ -635,7 +635,7 @@ public final class VoiceTranscribeService: ObservableObject {
             saveRecents()
         }
         guard !transcript.isEmpty else { return }
-        if state.voiceSkipResult {
+        if VoiceSettings.shared.skipResult {
             copy(transcript)
             showsResult = false
         } else {
@@ -731,7 +731,7 @@ public final class VoiceTranscribeService: ObservableObject {
     /// A red mic with the time in the menu bar while recording; click to stop.
     /// Also shown when the island is hidden, so a recording is always visible.
     private func updateStatusItem() {
-        guard phase == .recording, AppState.shared.voiceMenuBarIcon || AppState.shared.isIslandHidden else {
+        guard phase == .recording, VoiceSettings.shared.menuBarIcon || AppState.shared.isIslandHidden else {
             return removeStatusItem()
         }
         if statusItem == nil {
@@ -810,7 +810,7 @@ public final class VoiceTranscribeService: ObservableObject {
     /// Only with Settings › Recordings › Keep the last 5; otherwise recordings
     /// stay until deleted.
     private func trimRecents() {
-        guard AppState.shared.voiceRetention == .lastFive, recents.count > Self.recentsLimit else { return }
+        guard VoiceSettings.shared.retention == .lastFive, recents.count > Self.recentsLimit else { return }
         for old in recents[Self.recentsLimit...] {
             if playingID == old.id { stopPlayback() }
             try? FileManager.default.removeItem(at: old.url)

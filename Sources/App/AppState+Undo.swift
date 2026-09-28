@@ -132,7 +132,7 @@ extension AppState {
         let restored = snapshot.compactMap { removed.contains($0.id) ? $0 : current[$0.id] }
             .filter { !addedURLs.contains($0.url.standardizedFileURL) }
         withAnimation(DS.Motion.respecting(DS.Motion.reduceMotion, DS.Motion.fluid)) {
-            shelfItems = Array((added + restored).prefix(max(trayCapacity, 1)))
+            shelfItems = Array((added + restored).prefix(max(TraySettings.shared.capacity, 1)))
         }
         DroppyAudio.playDropSuccess()
     }

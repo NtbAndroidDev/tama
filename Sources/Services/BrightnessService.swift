@@ -83,7 +83,7 @@ public final class BrightnessService {
     /// The brightness keys fade the panel over a few frames, so reading once
     /// right after the key shows the old value. Follow it until it settles.
     public func presentHUD() {
-        guard AppState.shared.showBrightnessHUD, let first = brightness else { return }
+        guard HUDSettings.shared.showBrightnessHUD, let first = brightness else { return }
         noteOwnChange()
         AppState.shared.showHUD(.brightness, value: first)
         poll?.invalidate()
@@ -128,10 +128,9 @@ public final class BrightnessService {
     }
 
     public func syncAutoWatch() {
-        let state = AppState.shared
         // A screen that is off has no brightness worth following, and the HUD
         // that would report it isn't on screen either.
-        let wanted = state.automaticBrightnessHUD && state.showBrightnessHUD && getBrightness != nil
+        let wanted = HUDSettings.shared.automaticBrightnessHUD && HUDSettings.shared.showBrightnessHUD && getBrightness != nil
             && !PowerStateService.shared.isDormant
         if wanted, autoWatch == nil {
             baseline = brightness(on: builtInDisplay)

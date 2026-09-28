@@ -5,6 +5,7 @@ import SwiftUI
 public struct MenuBarManagerConsoleView: View {
     @ObservedObject private var manager = MenuBarManagerService.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var menuBarSettings = MenuBarSettings.shared
 
     public init() {}
 
@@ -34,7 +35,7 @@ public struct MenuBarManagerConsoleView: View {
                 DroppyPillButton(manager.isRevealed ? "Hide" : "Show", systemName: manager.isRevealed ? "eye.slash" : "eye",
                                  tone: .accent,
                                  help: manager.isRevealed ? "Hide the icons left of the divider" : "Show the hidden icons") { manager.toggle() }
-                if state.menuBarAlwaysHidden {
+                if menuBarSettings.alwaysHidden {
                     DroppyPillButton("Show all", systemName: "eye.circle", tone: .tonal,
                                      help: "Include the always-hidden section") { manager.reveal(all: true) }
                 }
@@ -59,7 +60,7 @@ public struct MenuBarManagerConsoleView: View {
     }
 
     private var detail: String {
-        guard state.menuBarAutoRehide else { return "They stay until you click the toggle again." }
-        return "They fold away again after \(Int(state.menuBarRehideDelay)) s."
+        guard menuBarSettings.autoRehide else { return "They stay until you click the toggle again." }
+        return "They fold away again after \(Int(menuBarSettings.rehideDelay)) s."
     }
 }

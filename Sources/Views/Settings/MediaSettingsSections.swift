@@ -8,6 +8,8 @@ import AppKit
 /// source filters.
 struct HUDsMediaSections: View {
     @ObservedObject var state = AppState.shared
+    @ObservedObject private var hudSettings = HUDSettings.shared
+    @ObservedObject private var mediaSettings = MediaSettings.shared
     @ObservedObject private var liveLevels = LiveAudioLevels.shared
     @State private var buttonSource: MediaButtonSource = .appleMusic
 
@@ -25,56 +27,61 @@ struct HUDsMediaSections: View {
             SettingsGroup {
                 SettingsToggleRow("Now Playing",
                                   help: "Enable now-playing controls and metadata in the resting notch: the cover, the bars and, if you like, the title. Off, music stays out of the notch; the player on the shelf still works.",
-                                  anchor: "huds.nowPlaying", isOn: $state.nowPlayingEnabled)
+                                  anchor: "huds.nowPlaying", isOn: $mediaSettings.nowPlayingEnabled)
                 SettingsDivider()
                 SettingsToggleRow("Auto-hide preview",
                                   help: "Fade out the mini player after a delay: once the music has been paused that long, the resting wings fold away. Playing again brings them back.",
-                                  anchor: "huds.autoHide", isOn: $state.mediaAutoHide)
-                    .settingsDisabled(!state.nowPlayingEnabled)
-                if state.mediaAutoHide {
+                                  anchor: "huds.autoHide", isOn: $mediaSettings.mediaAutoHide)
+                    .settingsDisabled(!mediaSettings.nowPlayingEnabled)
+                if mediaSettings.mediaAutoHide {
                     SettingsDivider()
-                    SettingsSlider("Hide after", value: $state.mediaAutoHideDelay, in: 2...30, step: 1, defaultValue: 5,
+                    SettingsSlider("Hide after", value: $mediaSettings.mediaAutoHideDelay, in: 2...30, step: 1, defaultValue: 5,
                                    help: "How long music stays paused before the wings fold away.") { String(format: "%.0f s", $0) }
-                        .settingsDisabled(!state.nowPlayingEnabled)
+                        .settingsDisabled(!mediaSettings.nowPlayingEnabled)
                 }
                 SettingsDivider()
+                SettingsRow("Now Playing size",
+                            subtitle: "Regular or a smaller player on the shelf.",
+                            help: "Smaller draws the whole player — cover, scrubber and transport — at 86 %, so the shelf takes less room while music plays.",
+                            anchor: "huds.nowPlayingSize")
+                ChoiceTiles(NowPlayingSize.allCases.map { .init($0, $0.title, icon: $0.icon) },
+                            selection: $mediaSettings.nowPlayingSize)
+                SettingsDivider()
+                // Both only shape the music in the resting notch, which Now
+                // Playing turns off as a whole (`showsMedia(on:)`).
                 Group {
-                    SettingsRow("Now Playing size",
-                                subtitle: state.nowPlayingEnabled ? "Regular or a smaller Now Playing layout." : "Needs Now Playing.",
-                                help: "Smaller draws the whole player — cover, scrubber and transport — at 86 %, so the shelf takes less room while music plays.",
-                                anchor: "huds.nowPlayingSize")
-                    ChoiceTiles(NowPlayingSize.allCases.map { .init($0, $0.title, icon: $0.icon) },
-                                selection: $state.nowPlayingSize)
+                    SettingsRow("Now Playing display",
+                                subtitle: mediaSettings.nowPlayingEnabled ? nil : "Needs Now Playing.",
+                                help: "Where the music shows when Tama is on more than one display. Under pointer: the island on the display you're using. MacBook: only the built-in display's notch (any display with the lid closed).",
+                                anchor: "huds.nowPlayingDisplay")
+                    ChoiceTiles([
+                        .init(NowPlayingDisplay.underPointer, "Under pointer", icon: "cursorarrow.rays"),
+                        .init(NowPlayingDisplay.macBook, "MacBook", icon: "laptopcomputer"),
+                    ], selection: $mediaSettings.nowPlayingDisplay)
+                    SettingsDivider()
+                    SettingsToggleRow("Notch track title",
+                                      subtitle: mediaSettings.nowPlayingEnabled
+                                        ? "Only where there's room. A physical notch keeps its own width, so the song shows in the player there."
+                                        : "Needs Now Playing.",
+                                      help: "Write the song's title beside the cover on the floating island. A display with a physical notch keeps the hardware's outline while resting, so the title waits for the open player there.",
+                                      anchor: "huds.trackTitle", isOn: $mediaSettings.notchTrackTitle)
                 }
-                .settingsDisabled(!state.nowPlayingEnabled)
-                SettingsDivider()
-                SettingsRow("Now Playing display",
-                            help: "Where the music shows when Tama is on more than one display. Under pointer: the island on the display you're using. MacBook: only the built-in display's notch (any display with the lid closed).",
-                            anchor: "huds.nowPlayingDisplay")
-                ChoiceTiles([
-                    .init(NowPlayingDisplay.underPointer, "Under pointer", icon: "cursorarrow.rays"),
-                    .init(NowPlayingDisplay.macBook, "MacBook", icon: "laptopcomputer"),
-                ], selection: $state.nowPlayingDisplay)
-                SettingsDivider()
-                SettingsToggleRow("Notch track title",
-                                  subtitle: "Only where there's room. A physical notch keeps its own width, so the song shows in the player there.",
-                                  help: "Write the song's title beside the cover on the floating island. A display with a physical notch keeps the hardware's outline while resting, so the title waits for the open player there.",
-                                  anchor: "huds.trackTitle", isOn: $state.notchTrackTitle)
+                .settingsDisabled(!mediaSettings.nowPlayingEnabled)
                 SettingsDivider()
                 SettingsRow("Visualizer", help: "Pick the Now Playing spectrum style: grey mono bars, or a two-tone ramp from the album art's colors (your highlight color when there's no art).",
                             anchor: "huds.visualizer")
                 PreviewCardPicker([
                     PreviewCardOption(VisualizerStyle.mono, "Mono bars", subtitle: "Mono spectrum bars"),
                     PreviewCardOption(VisualizerStyle.gradient, "Gradient bars", subtitle: "Two-tone album art ramp"),
-                ], selection: $state.visualizerStyle, thumbnailHeight: 70) { style in
+                ], selection: $mediaSettings.visualizerStyle, thumbnailHeight: 70) { style in
                     VisualizerThumbnail(style: style)
                 }
                 .padding(.top, -8)
                 SettingsDivider()
                 SettingsToggleRow("Live audio visualizer",
                                   help: "Bounce the bars to what's actually playing. Tama listens to the Mac's sound output to size them (macOS asks once for permission to record system audio); nothing is recorded or kept. Without the permission the bars keep their usual animation.",
-                                  anchor: "huds.liveVisualizer", isOn: $state.liveAudioVisualizer)
-                if state.liveAudioVisualizer && liveLevels.didFail {
+                                  anchor: "huds.liveVisualizer", isOn: $mediaSettings.liveAudioVisualizer)
+                if mediaSettings.liveAudioVisualizer && liveLevels.didFail {
                     HStack(alignment: .firstTextBaseline) {
                         SettingsNote("macOS didn't let Tama listen to the sound output (it needs macOS 14.2 and the System Audio Recording permission), so the bars are animated instead.",
                                      icon: "exclamationmark.triangle.fill", tint: DS.Palette.warning)
@@ -90,11 +97,11 @@ struct HUDsMediaSections: View {
                 SettingsDivider()
                 SettingsToggleRow("Live album artwork",
                                   help: "Click the cover in the player to see it large, drifting slowly while the song plays; close it with ✕ or Esc. macOS doesn't share Music's animated covers with other apps, so the motion is Tama's. Off, clicking the cover opens the playing app.",
-                                  anchor: "huds.liveArtwork", isOn: $state.liveAlbumArtwork)
+                                  anchor: "huds.liveArtwork", isOn: $mediaSettings.liveAlbumArtwork)
                 SettingsDivider()
                 SettingsToggleRow("Artwork tint",
                                   help: "Use gradient-based visuals: the open player washes the shelf in the album art's colors.",
-                                  anchor: "huds.artworkTint", isOn: $state.playerArtworkTint)
+                                  anchor: "huds.artworkTint", isOn: $mediaSettings.playerArtworkTint)
             }
         }
     }
@@ -110,7 +117,7 @@ struct HUDsMediaSections: View {
                 ChoiceTiles([
                     .init(DefaultMusicApp.appleMusic, "Apple Music", icon: "applelogo"),
                     .init(DefaultMusicApp.spotify, "Spotify", icon: "waveform.circle.fill"),
-                ], selection: $state.defaultMusicApp)
+                ], selection: $mediaSettings.defaultMusicApp)
                 SettingsDivider()
                 SettingsRow("Track swipe",
                             help: "Two-finger swipe inside the Media widget to skip tracks — on the player, the media card, or the music in the resting notch. Scrolling up and down there still changes the volume.",
@@ -118,18 +125,19 @@ struct HUDsMediaSections: View {
                 ChoiceTiles([
                     .init(true, "On", icon: "hand.draw"),
                     .init(false, "Off", icon: "hand.raised.slash"),
-                ], selection: $state.trackSwipe)
+                ], selection: $mediaSettings.trackSwipe)
+                SettingsDivider()
                 Group {
                     SettingsRow("Track swipe direction",
-                                subtitle: state.trackSwipe ? nil : "Needs Track swipe.",
+                                subtitle: mediaSettings.trackSwipe ? nil : "Needs Track swipe.",
                                 help: "Flip the track-skip swipe. Standard: fingers moving left play the next song. Reversed: fingers moving right do.",
                                 anchor: "huds.trackSwipeDirection")
                     ChoiceTiles([
                         .init(false, "Standard", icon: "arrow.left.and.right"),
                         .init(true, "Reversed", icon: "arrow.left.arrow.right"),
-                    ], selection: $state.trackSwipeReversed)
+                    ], selection: $mediaSettings.trackSwipeReversed)
                 }
-                .settingsDisabled(!state.trackSwipe)
+                .settingsDisabled(!mediaSettings.trackSwipe)
                 SettingsDivider()
                 SettingsRow("On notch click",
                             help: "Open media on notch click: while music plays, a click on the notch opens the player. Default opens the page picked in Shelf › Pages.",
@@ -137,23 +145,23 @@ struct HUDsMediaSections: View {
                 ChoiceTiles([
                     .init(true, "Media widget", icon: "music.note"),
                     .init(false, "Default", icon: "house"),
-                ], selection: $state.notchClickOpensMedia)
+                ], selection: $mediaSettings.notchClickOpensMedia)
                 SettingsDivider()
                 playbackButtons
                 SettingsDivider()
                 SettingsToggleRow("Filter media sources",
                                   help: "Choose which apps Tama shows and controls. An app you switch off is ignored, as if it weren't playing.",
-                                  anchor: "huds.filterSources", isOn: $state.filterMediaSources)
-                if state.filterMediaSources { sourceList }
+                                  anchor: "huds.filterSources", isOn: $mediaSettings.filterMediaSources)
+                if mediaSettings.filterMediaSources { sourceList }
                 SettingsDivider()
                 SettingsToggleRow("Hide Incognito media",
                                   help: "Hide media from private browsing windows. Chrome, Brave, Edge, Vivaldi, Opera and Chromium say which windows are incognito. Safari doesn't tell other apps which windows are private, so its private tabs can't be told apart.",
-                                  anchor: "huds.hideIncognito", isOn: $state.hideIncognitoMedia)
+                                  anchor: "huds.hideIncognito", isOn: $mediaSettings.hideIncognitoMedia)
                 SettingsDivider()
                 SettingsToggleRow("Always use built-in speakers",
                                   subtitle: "A headset that connects doesn't take the sound with it.",
                                   help: "macOS hands the sound to headphones or a speaker the moment they connect. With this on, Tama hands it straight back to this Mac's own speakers. Picking an output by hand, here or in the player, still works.",
-                                  anchor: "huds.builtInSpeakers", isOn: $state.alwaysUseBuiltInSpeakers)
+                                  anchor: "huds.builtInSpeakers", isOn: $hudSettings.alwaysUseBuiltInSpeakers)
             }
         }
     }
@@ -312,17 +320,43 @@ struct DropletSettingsSections: View {
         case "thunderstorm": ThunderstormDropletSettings()
         case "menuBar": MenuBarManagerDropletSettings()
         case "localSend": LocalSendDropletSettings()
+        case "pomodoro": ShelfOptionsLink(name: "Pomodoro", anchor: "shelf.pomodoro")
+        case "caffeine": ShelfOptionsLink(name: "High Alert", anchor: "shelf.highAlert.mode")
+        case "scratchpad": ShelfOptionsLink(name: "Notes", anchor: "shelf.notes.sync")
         default: EmptyView()
+        }
+    }
+}
+
+/// A droplet whose options live on the Shelf page: say so and go there,
+/// rather than leave the detail page ending in nothing.
+private struct ShelfOptionsLink: View {
+    let name: String
+    let anchor: String
+
+    var body: some View {
+        Section {
+            LabeledContent {
+                Button("Show in Shelf") {
+                    if let entry = SettingsSearchIndex.entries.first(where: { $0.anchor == anchor }) {
+                        SettingsNavigator.shared.reveal(entry)
+                    }
+                }
+            } label: {
+                Text("\(name) options are under Settings › Shelf › \(name).")
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }
 
 private struct AppleMusicDropletSettings: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var mediaSettings = MediaSettings.shared
 
     var body: some View {
         Section {
-            Toggle(isOn: $state.audioQualityBadge) {
+            Toggle(isOn: $mediaSettings.audioQualityBadge) {
                 HStack(spacing: 6) {
                     Text("Audio quality badge")
                     InfoButton("Show Lossless or Hi-Res Lossless beside the title when Music says the song is. Music only describes files it has (downloaded or in your library); for other streams the badge stays hidden rather than guess.")
@@ -341,14 +375,14 @@ private struct AppleMusicDropletSettings: View {
         } header: {
             Text("Media widget")
         } footer: {
-            Text("Choose which playback buttons appear either side of previous / play / next while Music plays. Spotify and other players have their own in HUDs › Media Controls.")
+            Text("Choose which playback buttons appear either side of previous / play / next while Music plays. Spotify and other players have their own in HUDs › Media controls.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
 }
 
 private struct WeatherDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var weatherSettings = WeatherSettings.shared
     @ObservedObject private var weather = WeatherService.shared
     @State private var query = ""
     @State private var results: [WeatherPlace] = []
@@ -358,7 +392,7 @@ private struct WeatherDropletSettings: View {
 
     var body: some View {
         Section {
-            Picker(selection: $state.weatherStyle) {
+            Picker(selection: $weatherSettings.style) {
                 Text("Colorful").tag(WeatherStyle.colorful)
                 Text("Dark").tag(WeatherStyle.dark)
                 Text("Liquid Glass").tag(WeatherStyle.liquidGlass)
@@ -374,7 +408,7 @@ private struct WeatherDropletSettings: View {
             Text("Weather")
         }
         Section {
-            Picker(selection: $state.weatherLocationMode) {
+            Picker(selection: $weatherSettings.locationMode) {
                 Text("Automatic location").tag(WeatherLocationMode.automatic)
                 Text("Selected location").tag(WeatherLocationMode.fixed)
             } label: {
@@ -384,10 +418,10 @@ private struct WeatherDropletSettings: View {
                 }
             }
             .settingsAnchor("droplet.weather.location")
-            if state.weatherLocationMode == .fixed {
+            if weatherSettings.locationMode == .fixed {
                 LabeledContent("Showing") {
-                    Text(state.weatherPlaceName.isEmpty ? "No place picked yet" : state.weatherPlaceName)
-                        .foregroundStyle(state.weatherPlaceName.isEmpty ? .secondary : .primary)
+                    Text(weatherSettings.placeName.isEmpty ? "No place picked yet" : weatherSettings.placeName)
+                        .foregroundStyle(weatherSettings.placeName.isEmpty ? .secondary : .primary)
                 }
             } else if weather.isDenied {
                 HStack {
@@ -433,7 +467,7 @@ private struct WeatherDropletSettings: View {
                 .font(.caption).foregroundStyle(.secondary)
         }
         Section {
-            Picker(selection: $state.weatherRefreshMinutes) {
+            Picker(selection: $weatherSettings.refreshMinutes) {
                 Text("15 minutes").tag(15)
                 Text("30 minutes").tag(30)
                 Text("1 hour").tag(60)
@@ -445,14 +479,14 @@ private struct WeatherDropletSettings: View {
                 }
             }
             .settingsAnchor("droplet.weather.refresh")
-            Toggle(isOn: $state.weatherShowsAQI) {
+            Toggle(isOn: $weatherSettings.showsAQI) {
                 HStack(spacing: 6) {
                     Text("Air quality")
                     InfoButton("Show AQI and air quality category.")
                 }
             }
             .settingsAnchor("droplet.weather.aqi")
-            Toggle(isOn: $state.weatherShowsSun) {
+            Toggle(isOn: $weatherSettings.showsSun) {
                 HStack(spacing: 6) {
                     Text("Sunrise & sunset")
                     InfoButton("Show sunrise and sunset times.")
@@ -460,7 +494,7 @@ private struct WeatherDropletSettings: View {
             }
             .settingsAnchor("droplet.weather.sun")
         }
-        .onChange(of: state.weatherShowsAQI) { _, _ in weather.refresh(force: true) }
+        .onChange(of: weatherSettings.showsAQI) { _, _ in weather.refresh(force: true) }
     }
 
     /// Searches a moment after typing stops.

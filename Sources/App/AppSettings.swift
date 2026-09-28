@@ -8,6 +8,11 @@ import UniformTypeIdentifiers
 // their old look until something else happened to redraw them. Settings are
 // watched in UserDefaults instead, which also catches writes made elsewhere
 // (a view's own @AppStorage, Reset to Defaults).
+//
+// The values themselves live in the settings stores (App/Settings), which
+// republish on their own keys. AppState still republishes on any of them,
+// because the island's geometry and many views read settings through it;
+// once a view observes the stores it needs, it no longer needs this.
 
 extension AppState {
     /// Every UserDefaults key that is a user preference. Data — clipboard
@@ -123,8 +128,8 @@ extension AppState {
     /// What the one-time raise should store, or nil to leave the setting be:
     /// never set, or already at least as long as the new default.
     nonisolated static func raisedCollapseDelay(from stored: Double?) -> Double? {
-        guard let stored, stored < defaultAutoHideDelay else { return nil }
-        return defaultAutoHideDelay
+        guard let stored, stored < GeneralSettings.defaultAutoHideDelay else { return nil }
+        return GeneralSettings.defaultAutoHideDelay
     }
 
     private static func settingsSnapshot() -> NSDictionary {
@@ -249,19 +254,19 @@ extension AppState {
     /// Writing UserDefaults directly skips the properties' didSet; run their
     /// effects so a reset or an import applies at once.
     private func applyStoredSettings() {
-        let limit = clipboardHistoryLimit
-        clipboardHistoryLimit = limit
-        let work = pomodoroWorkMinutes
-        pomodoroWorkMinutes = work
-        VPNService.shared.apply(enabled: showVPNStatus)
-        DownloadWatcher.shared.apply(enabled: showDownloadActivity)
+        let limit = ClipboardSettings.shared.historyLimit
+        ClipboardSettings.shared.historyLimit = limit
+        let work = PomodoroSettings.shared.workMinutes
+        PomodoroSettings.shared.workMinutes = work
+        VPNService.shared.apply(enabled: HUDSettings.shared.showVPNStatus)
+        DownloadWatcher.shared.apply(enabled: HUDSettings.shared.showDownloadActivity)
         MeetingService.shared.tick()
         applyClipboardRetention()
         CaptureExclusion.apply()
         IslandVisibilityService.shared.sync()
         applyHUDSettings()
         applyMediaSettings()
-        DroppyDiagnostics.applyTooltipPreference(showTooltips)
+        DroppyDiagnostics.applyTooltipPreference(GeneralSettings.shared.showTooltips)
         // Services that cache their keys in memory: without this they keep the
         // old values until the next launch, so a reset or import looks ignored.
         ObsidianService.shared.reloadFromDefaults()
@@ -339,19 +344,19 @@ public struct LevelHUDStyle: Equatable, Sendable {
 extension AppState {
     /// The meter colour picked on the Theming tape, for `HUDMeterStyle.custom`.
     public func hudCustomColor(for kind: IslandHUD.Kind) -> Color? {
-        TapePalette.color(for: kind == .volume ? hudMeterCustomColor : brightnessHUDMeterCustomColor)
+        TapePalette.color(for: kind == .volume ? HUDSettings.shared.hudMeterCustomColor : HUDSettings.shared.brightnessHUDMeterCustomColor)
     }
 
     public func hudStyle(for kind: IslandHUD.Kind) -> LevelHUDStyle {
         switch kind {
         case .volume:
-            return LevelHUDStyle(duration: hudDuration, meter: hudMeterStyle, showPercentage: hudShowPercentage,
-                                 hideLabel: hudHideLabel, animation: hudAnimation, leading: hudLeading)
+            return LevelHUDStyle(duration: HUDSettings.shared.hudDuration, meter: HUDSettings.shared.hudMeterStyle, showPercentage: HUDSettings.shared.hudShowPercentage,
+                                 hideLabel: HUDSettings.shared.hudHideLabel, animation: HUDSettings.shared.hudAnimation, leading: HUDSettings.shared.hudLeading)
         // The keyboard backlight shares the brightness HUD's look.
         case .brightness, .keyboard:
-            return LevelHUDStyle(duration: brightnessHUDDuration, meter: brightnessHUDMeterStyle,
-                                 showPercentage: brightnessHUDShowPercentage, hideLabel: brightnessHUDHideLabel,
-                                 animation: brightnessHUDAnimation, leading: .symbol)
+            return LevelHUDStyle(duration: HUDSettings.shared.brightnessHUDDuration, meter: HUDSettings.shared.brightnessHUDMeterStyle,
+                                 showPercentage: HUDSettings.shared.brightnessHUDShowPercentage, hideLabel: HUDSettings.shared.brightnessHUDHideLabel,
+                                 animation: HUDSettings.shared.brightnessHUDAnimation, leading: .symbol)
         }
     }
 }

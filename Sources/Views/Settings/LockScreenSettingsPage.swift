@@ -6,7 +6,7 @@ import SwiftUI
 /// animation and sound tiles and the two sound pickers, then Features (media
 /// HUD, volume and brightness sliders, screensaver, keep awake), then Widgets.
 struct LockScreenSettingsPage: View {
-    @ObservedObject var state = AppState.shared
+    @ObservedObject private var lockScreenSettings = LockScreenSettings.shared
     @ObservedObject private var weather = WeatherService.shared
     @ObservedObject private var calendar = CalendarService.shared
     private let sounds = LockSound.choices
@@ -15,26 +15,27 @@ struct LockScreenSettingsPage: View {
         VStack(alignment: .leading, spacing: 24) {
             SettingsSection("Lock screen") {
                 SettingsGroup {
-                    SettingsRow("Lock screen", icon: "lock.fill",
-                                help: "Enable or disable all lock screen features. Nothing Tama draws covers the password field.",
-                                anchor: "lock.enable") {
-                        Toggle("Lock screen", isOn: $state.lockScreenEnabled).labelsHidden().toggleStyle(.switch)
-                    }
-                    ToggleTiles([
-                        ToggleTile("Lock/unlock animation", icon: "lock.fill", isOn: $state.lockScreenAnimation),
-                        ToggleTile("Lock & unlock sound", icon: "speaker.wave.2.fill", isOn: $state.lockScreenSounds),
-                    ], anchor: "lock.animation")
-                    .disabled(!state.lockScreenEnabled)
-                    .opacity(state.lockScreenEnabled ? 1 : 0.5)
+                    SettingsToggleRow("Lock screen",
+                                      subtitle: lockScreenSettings.isEnabled ? nil : "Off: the options below don't apply.",
+                                      icon: "lock.fill",
+                                      help: "Enable or disable all lock screen features. Nothing Tama draws covers the password field.",
+                                      anchor: "lock.enable", isOn: $lockScreenSettings.isEnabled)
                     // Everything under the master switch is inert while it's off.
                     Group {
-                        soundRow("Lock sound", help: "Plays the moment the screen locks.", selection: $state.lockScreenLockSound,
-                                 locking: true, anchor: "lock.sound")
-                        SettingsDivider()
-                        soundRow("Unlock sound", help: "Plays the moment the screen unlocks.", selection: $state.lockScreenUnlockSound,
-                                 locking: false, anchor: nil)
+                        ToggleTiles([
+                            ToggleTile("Lock & unlock animation", icon: "lock.fill", isOn: $lockScreenSettings.animation),
+                            ToggleTile("Lock & unlock sound", icon: "speaker.wave.2.fill", isOn: $lockScreenSettings.sounds),
+                        ], anchor: "lock.animation")
+                        Group {
+                            soundRow("Lock sound", help: "Plays the moment the screen locks.", selection: $lockScreenSettings.lockSound,
+                                     locking: true, anchor: "lock.sound")
+                            SettingsDivider()
+                            soundRow("Unlock sound", help: "Plays the moment the screen unlocks.", selection: $lockScreenSettings.unlockSound,
+                                     locking: false, anchor: nil)
+                        }
+                        .settingsDisabled(!lockScreenSettings.sounds)
                     }
-                    .disabled(!state.lockScreenEnabled)
+                    .settingsDisabled(!lockScreenSettings.isEnabled)
                 }
             }
 
@@ -43,33 +44,32 @@ struct LockScreenSettingsPage: View {
                     SettingsGroup {
                         SettingsToggleRow("Lock screen media HUD", icon: "play.rectangle.fill",
                                           help: "Show Now Playing controls on the lock screen. Only drawn while something is playing or paused.",
-                                          anchor: "lock.player", isOn: $state.lockScreenShowsPlayer)
+                                          anchor: "lock.player", isOn: $lockScreenSettings.showsPlayer)
                         SettingsDivider()
                         Group {
                             SettingsRow("Media HUD material",
-                                        subtitle: state.lockScreenShowsPlayer ? nil : "Turn on the lock screen media HUD to choose its material.",
+                                        subtitle: lockScreenSettings.showsPlayer ? nil : "Turn on the lock screen media HUD to choose its material.",
                                         anchor: "lock.mediaMaterial")
                             ChoiceTiles(LockSurfaceMaterial.allCases.map { .init($0, $0.title) },
-                                        selection: $state.lockScreenMediaMaterial)
+                                        selection: $lockScreenSettings.mediaMaterial)
                         }
-                        .disabled(!state.lockScreenShowsPlayer)
-                        .opacity(state.lockScreenShowsPlayer ? 1 : 0.5)
+                        .settingsDisabled(!lockScreenSettings.showsPlayer)
                         SettingsDivider()
                         SettingsToggleRow("Volume slider", icon: "speaker.wave.2.fill",
                                           help: "A volume slider on the lock screen, above the media HUD.",
-                                          anchor: "lock.volume", isOn: $state.lockScreenVolumeSlider)
+                                          anchor: "lock.volume", isOn: $lockScreenSettings.volumeSlider)
                         SettingsDivider()
                         SettingsToggleRow("Brightness slider", icon: "sun.max",
                                           help: "A display brightness slider on the lock screen.",
-                                          anchor: "lock.brightness", isOn: $state.lockScreenBrightnessSlider)
+                                          anchor: "lock.brightness", isOn: $lockScreenSettings.brightnessSlider)
                         SettingsDivider()
                         SettingsToggleRow("Keep visible during screensaver", icon: "moon.stars",
                                           help: "Keep the widgets and media HUD above the screen saver. Off, they step aside while it runs.",
-                                          anchor: "lock.screensaver", isOn: $state.lockScreenDuringScreensaver)
+                                          anchor: "lock.screensaver", isOn: $lockScreenSettings.duringScreensaver)
                         SettingsDivider()
                         SettingsSlider("Keep awake",
-                                       value: Binding(get: { Double(LockKeepAwake.index(of: state.lockScreenKeepAwake)) },
-                                                      set: { state.lockScreenKeepAwake = LockKeepAwake.stops[Int($0.rounded())] }),
+                                       value: Binding(get: { Double(LockKeepAwake.index(of: lockScreenSettings.keepAwake)) },
+                                                      set: { lockScreenSettings.keepAwake = LockKeepAwake.stops[Int($0.rounded())] }),
                                        in: 0...Double(LockKeepAwake.stops.count - 1), step: 1, defaultValue: 0,
                                        help: "Keeps the display on for this long after locking, so the lock screen stays visible. Released as soon as you unlock.",
                                        anchor: "lock.keepAwake") { LockKeepAwake.title(LockKeepAwake.stops[Int($0.rounded())]) }
@@ -80,50 +80,60 @@ struct LockScreenSettingsPage: View {
                     SettingsGroup {
                         SettingsToggleRow("Status widgets row", icon: "square.grid.2x2.fill",
                                           help: "Show centered widgets under the lock screen clock.",
-                                          anchor: "lock.status", isOn: $state.lockScreenShowsStatusRow)
+                                          anchor: "lock.status", isOn: $lockScreenSettings.showsStatusRow)
                         preview.padding(12)
                         Group {
-                            SettingsRow("Widget style", help: "Vertical or rounded layout.", anchor: "lock.widgetStyle")
+                            SettingsRow("Widget style", help: "Inline: one line on the wallpaper. Vertical: icon over value, in columns. Rounded: each widget in its own tile.",
+                                        anchor: "lock.widgetStyle")
                             ChoiceTiles(LockWidgetStyle.allCases.map { .init($0, $0.title) },
-                                        selection: $state.lockScreenWidgetStyle)
+                                        selection: $lockScreenSettings.widgetStyle)
                             SettingsDivider()
-                            SettingsRow("Widget look", help: "Light or dark widgets. Light shows dark text on light rounded tiles.",
-                                        anchor: "lock.widgetLook")
-                            ChoiceTiles([.init(LockWidgetLook.light, "Light", icon: "sun.max"),
-                                         .init(LockWidgetLook.dark, "Dark", icon: "moon")],
-                                        selection: $state.lockScreenWidgetLook)
+                            // Only the Rounded style draws tiles to colour.
+                            Group {
+                                SettingsRow("Widget look",
+                                            subtitle: isRounded ? nil : "Only in the Rounded style.",
+                                            help: "Light or dark tiles. Light shows dark text on light rounded tiles.",
+                                            anchor: "lock.widgetLook")
+                                ChoiceTiles([.init(LockWidgetLook.light, "Light", icon: "sun.max"),
+                                             .init(LockWidgetLook.dark, "Dark", icon: "moon")],
+                                            selection: $lockScreenSettings.widgetLook)
+                                SettingsDivider()
+                                SettingsRow("Widget material",
+                                            subtitle: isRounded ? nil : "Only in the Rounded style.",
+                                            help: "What the rounded tiles are made of: Dark, Regular or Liquid glass.",
+                                            anchor: "lock.widgetMaterial")
+                                ChoiceTiles(LockSurfaceMaterial.allCases.map { .init($0, $0.title) },
+                                            selection: $lockScreenSettings.widgetMaterial)
+                            }
+                            .settingsDisabled(!isRounded)
                             SettingsDivider()
-                            SettingsRow("Widget material", help: "Regular or liquid (rounded style).", anchor: "lock.widgetMaterial")
-                            ChoiceTiles(LockSurfaceMaterial.allCases.map { .init($0, $0.title) },
-                                        selection: $state.lockScreenWidgetMaterial)
+                            SettingsToggleRow("Mac battery", isOn: $lockScreenSettings.showsBattery)
                             SettingsDivider()
-                            SettingsToggleRow("Mac battery", subtitle: "Show Mac battery percentage widget.", isOn: $state.lockScreenShowsBattery)
+                            SettingsToggleRow("Headphone battery", isOn: $lockScreenSettings.showsHeadphones)
                             SettingsDivider()
-                            SettingsToggleRow("Headphone battery", isOn: $state.lockScreenShowsHeadphones)
-                            SettingsDivider()
-                            SettingsToggleRow("Next event", isOn: $state.lockScreenShowsNextEvent)
-                            if state.lockScreenShowsNextEvent && !calendar.hasEventAccess {
+                            SettingsToggleRow("Next event", isOn: $lockScreenSettings.showsNextEvent)
+                            if lockScreenSettings.showsNextEvent && !calendar.hasEventAccess {
                                 warning("Needs Calendar access to show your next event.") {
                                     Button("Allow…") { PermissionService.shared.request(.calendars) }
                                 }
                             }
                             SettingsDivider()
-                            SettingsToggleRow("Weather, air quality and sunset", isOn: $state.lockScreenShowsWeather)
-                            if state.lockScreenShowsWeather { weatherStatus }
+                            SettingsToggleRow("Weather, air quality and sunset", isOn: $lockScreenSettings.showsWeather)
+                            if lockScreenSettings.showsWeather { weatherStatus }
                         }
-                        .disabled(!state.lockScreenShowsStatusRow)
-                        .opacity(state.lockScreenShowsStatusRow ? 1 : 0.5)
+                        .settingsDisabled(!lockScreenSettings.showsStatusRow)
                     }
                 }
             }
-            .disabled(!state.lockScreenEnabled)
-            .opacity(state.lockScreenEnabled ? 1 : 0.5)
+            .settingsDisabled(!lockScreenSettings.isEnabled)
         }
     }
 
+    private var isRounded: Bool { lockScreenSettings.widgetStyle == .rounded }
+
     /// A sound picker with ▶ to hear it.
     private func soundRow(_ title: String, help: String, selection: Binding<String>, locking: Bool, anchor: String?) -> some View {
-        SettingsRow(title, help: help, anchor: anchor) {
+        SettingsRow(title, subtitle: lockScreenSettings.sounds ? nil : "Needs Lock & unlock sound.", help: help, anchor: anchor) {
             Button { LockSound.play(selection.wrappedValue, locking: locking) } label: {
                 Image(systemName: "play.circle.fill").font(.system(size: 15))
             }
@@ -141,9 +151,6 @@ struct LockScreenSettingsPage: View {
             .labelsHidden()
             .fixedSize()
         }
-        .disabled(!state.lockScreenSounds)
-        // Dimmed once, whether the master switch or the sound tile is off.
-        .opacity(state.lockScreenEnabled && state.lockScreenSounds ? 1 : 0.5)
     }
 
     /// The row as it will look, on a dark stand-in for the wallpaper.
@@ -152,7 +159,7 @@ struct LockScreenSettingsPage: View {
     /// measured and scaled inside a reader. Otherwise the card claims 1100 pt
     /// and the whole Widgets group overflows the page.
     private var preview: some View {
-        let height = LockScreenStatusRow.height(for: state.lockScreenWidgetStyle)
+        let height = LockScreenStatusRow.height(for: lockScreenSettings.widgetStyle)
         return GeometryReader { geo in
             let scale = min(geo.size.width / 1100, 0.52)
             LockScreenStatusRow()
@@ -168,7 +175,7 @@ struct LockScreenSettingsPage: View {
                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .opacity(state.lockScreenEnabled && state.lockScreenShowsStatusRow ? 1 : 0.4)
+            .opacity(lockScreenSettings.showsStatusRow ? 1 : 0.45)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Preview of the lock screen status row")
     }

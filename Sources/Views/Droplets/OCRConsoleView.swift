@@ -77,7 +77,7 @@ final class OCRSession: ObservableObject {
                 self.barcodes = result.barcodes
                 if result.text.isEmpty && result.barcodes.isEmpty {
                     self.errorMessage = "No text found"
-                } else if AppState.shared.autoCopyOCRText, !result.text.isEmpty {
+                } else if TraySettings.shared.autoCopyOCRText, !result.text.isEmpty {
                     AppState.shared.autoCopyRecognizedText(result.text)
                 } else {
                     DroppyAudio.playDropSuccess()

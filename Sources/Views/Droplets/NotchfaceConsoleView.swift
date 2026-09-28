@@ -7,6 +7,7 @@ import SwiftUI
 struct NotchfaceConsoleView: View {
     @ObservedObject private var camera = NotchfaceCamera.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var notchfaceSettings = NotchfaceSettings.shared
 
     var body: some View {
         VStack(spacing: DS.Space.md) {
@@ -14,7 +15,7 @@ struct NotchfaceConsoleView: View {
                 RoundedRectangle(cornerRadius: DS.Radius.md, style: .continuous)
                     .fill(DS.Palette.surface1)
                 if camera.isRunning {
-                    CameraPreview(session: camera.pipeline.session, mirrored: state.notchfaceMirror)
+                    CameraPreview(session: camera.pipeline.session, mirrored: notchfaceSettings.mirror)
                         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.md, style: .continuous))
                         .accessibilityElement()
                         .accessibilityLabel("Live camera preview")
@@ -52,9 +53,9 @@ struct NotchfaceConsoleView: View {
                 }
                 Spacer(minLength: 0)
                 DroppyIconButton("arrow.left.and.right.righttriangle.left.righttriangle.right", size: 26,
-                                 isActive: state.notchfaceMirror,
-                                 help: state.notchfaceMirror ? "Show unmirrored" : "Mirror the preview") {
-                    state.notchfaceMirror.toggle()
+                                 isActive: notchfaceSettings.mirror,
+                                 help: notchfaceSettings.mirror ? "Show unmirrored" : "Mirror the preview") {
+                    notchfaceSettings.mirror.toggle()
                 }
             }
         }
@@ -69,7 +70,7 @@ struct NotchfaceConsoleView: View {
     }
 
     private var selectedID: String {
-        let wanted = state.notchfaceCamera
+        let wanted = notchfaceSettings.camera
         if camera.cameras.contains(where: { $0.id == wanted }) { return wanted }
         return AVCaptureDevice.default(for: .video)?.uniqueID ?? camera.cameras.first?.id ?? ""
     }

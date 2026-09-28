@@ -222,7 +222,7 @@ public final class WindowSnapService {
     /// flash the target zone first when "Show snap preview" is on.
     public func perform(_ layout: SnapLayout, fromShortcut: Bool) {
         do {
-            let showPreview = fromShortcut && AppState.shared.windowSnapShowPreview
+            let showPreview = fromShortcut && CaptureSettings.shared.windowSnapShowPreview
             let app = try snap(layout, showPreview: showPreview)
             if !fromShortcut {
                 AppState.shared.showNotification(appName: "Window Snap", title: "Window Positioned",
@@ -304,7 +304,7 @@ public final class WindowSnapService {
         return app.localizedName ?? "Window"
     }
 
-    private var showsPreviewForFront: Bool { AppState.shared.windowSnapShowPreview }
+    private var showsPreviewForFront: Bool { CaptureSettings.shared.windowSnapShowPreview }
 
     private static func distance(_ a: CGRect, _ b: CGRect) -> CGFloat {
         abs(a.minX - b.minX) + abs(a.minY - b.minY) + abs(a.width - b.width) + abs(a.height - b.height)

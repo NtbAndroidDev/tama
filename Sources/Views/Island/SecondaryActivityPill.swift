@@ -19,7 +19,7 @@ enum RestingSlot: Equatable {
         let urgent: [RestingSlot] = live.filter { $0.priority == .urgent }.reversed().map { .activity($0) }
         let hasMusic = state.mediaService.currentTrack.hasTrack && state.showsMedia(on: displayID)
         var slots: [RestingSlot] = []
-        if hasMusic, state.compactHUDPriority == .mediaFirst {
+        if hasMusic, HUDSettings.shared.compactHUDPriority == .mediaFirst {
             slots = [.music] + urgent
         } else {
             slots = urgent
@@ -30,7 +30,7 @@ enum RestingSlot: Equatable {
         if state.sleepBlocker.isAwakeActive { slots.append(.awake) }
         slots += live.filter { $0.priority == .ambient }.reversed().map { .activity($0) }
         // Settings › Pomodoro › Keep timer visible: right after urgent activities.
-        if state.pomodoroKeepVisible, let index = slots.firstIndex(of: .pomodoro) {
+        if PomodoroSettings.shared.keepVisible, let index = slots.firstIndex(of: .pomodoro) {
             slots.remove(at: index)
             let urgentCount = slots.prefix { if case let .activity(a) = $0 { return a.priority == .urgent } else { return false } }.count
             slots.insert(.pomodoro, at: urgentCount)
@@ -53,6 +53,7 @@ enum RestingSlot: Equatable {
 struct SecondaryActivityPill: View {
     let displayID: CGDirectDisplayID?
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var hudSettings = HUDSettings.shared
     @ObservedObject private var live = LiveActivityCenter.shared
     @ObservedObject private var media = MediaService.shared
     // High Alert isn't observed here: AppState forwards its on/off flips, and
@@ -61,7 +62,7 @@ struct SecondaryActivityPill: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var slot: RestingSlot? {
-        guard state.multiLiveActivities,
+        guard hudSettings.multiLiveActivities,
               state.islandMode(on: displayID) == .resting,
               !state.isRestingSurfaceHidden,
               !state.isSurfaceSuppressed(on: displayID) else { return nil }

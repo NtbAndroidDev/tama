@@ -67,6 +67,7 @@ public enum HomeWidget {
 /// and a picker underneath adds widgets until the change is confirmed.
 public struct HomePage: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var pomodoroSettings = PomodoroSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init() {}
@@ -216,6 +217,7 @@ public struct HomePage: View {
 /// page, checked when it's in the draft, then cancel and confirm.
 private struct HomeWidgetPicker: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var pomodoroSettings = PomodoroSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -472,6 +474,7 @@ private struct MediaCard: View {
 
 private struct PomodoroCard: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var pomodoroSettings = PomodoroSettings.shared
     @ObservedObject private var pomodoroClock = PomodoroClock.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -483,7 +486,7 @@ private struct PomodoroCard: View {
     var body: some View {
         VStack(spacing: 10) {
             CardHeader(id: "pomodoro") {
-                Text(state.isPomodoroWorkCycle ? "Focus · \(state.pomodoroWorkMinutes)m" : "Break · \(state.pomodoroBreakMinutes)m")
+                Text(state.isPomodoroWorkCycle ? "Focus · \(pomodoroSettings.workMinutes)m" : "Break · \(pomodoroSettings.breakMinutes)m")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(NotchPalette.tertiary)
             }
@@ -689,6 +692,7 @@ private struct MeetingsCard: View {
 private struct CalendarCard: View {
     @ObservedObject private var calendar = CalendarService.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var pomodoroSettings = PomodoroSettings.shared
 
     private var hasAccess: Bool { calendar.hasEventAccess || calendar.hasReminderAccess }
 
@@ -921,6 +925,7 @@ private extension View {
 private struct ScratchpadCard: View {
     @ObservedObject private var store = NotesStore.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var pomodoroSettings = PomodoroSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {

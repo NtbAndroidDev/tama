@@ -57,8 +57,7 @@ public final class ScreenStateService: ObservableObject {
 
     /// Starts or stops what the settings need.
     public func sync() {
-        let state = AppState.shared
-        if state.fullscreenBehavior != .show {
+        if DisplaySettings.shared.fullscreenBehavior != .show {
             // Nothing is fullscreen over a screen that is off, and the island
             // it would step aside for isn't being drawn either: the poll waits
             // until the screen comes back.
@@ -79,7 +78,7 @@ public final class ScreenStateService: ObservableObject {
             poll = nil
             update(fullscreen: [])
         }
-        if state.hideInMissionControl {
+        if DisplaySettings.shared.hideInMissionControl {
             watchDock()
         } else {
             unwatchDock()
@@ -92,8 +91,8 @@ public final class ScreenStateService: ObservableObject {
 
     public func refreshFullscreen() {
         // Accessibility may have been granted since; the Dock watch needs it.
-        if AppState.shared.hideInMissionControl, dockObserver == nil { watchDock() }
-        guard AppState.shared.fullscreenBehavior != .show else { return }
+        if DisplaySettings.shared.hideInMissionControl, dockObserver == nil { watchDock() }
+        guard DisplaySettings.shared.fullscreenBehavior != .show else { return }
         // Screen geometry is read here on main; the Accessibility round-trip into
         // the frontmost app and the window-list copy run on a serial background
         // queue, so a hung frontmost app can't beachball the menu-bar app.
@@ -113,7 +112,7 @@ public final class ScreenStateService: ObservableObject {
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     // The setting may have been switched to "show" while this ran.
-                    guard AppState.shared.fullscreenBehavior != .show else { return }
+                    guard DisplaySettings.shared.fullscreenBehavior != .show else { return }
                     ScreenStateService.shared.update(fullscreen: result)
                 }
             }

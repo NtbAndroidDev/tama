@@ -6,6 +6,7 @@ import AppKit
 /// a preview pane, and a bottom bar with Paste, Copy, ★ and Delete.
 struct LegacyClipboardView: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var clipboardSettings = ClipboardSettings.shared
     @ObservedObject private var privacy = ClipboardPrivacy.shared
     @ObservedObject private var browser = ClipboardBrowser.shared
     @FocusState private var searchFocused: Bool
@@ -16,7 +17,7 @@ struct LegacyClipboardView: View {
     @State private var hasAppeared = false
 
     private var clips: [ClipboardItem] { browser.clips(from: state.clipboardItems) }
-    private var isShown: Bool { hasAppeared && state.isClipboardVisible && state.clipboardLayout == .legacy }
+    private var isShown: Bool { hasAppeared && state.isClipboardVisible && clipboardSettings.layout == .legacy }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,7 +50,7 @@ struct LegacyClipboardView: View {
             if visible {
                 browser.select(clips.first?.id)
                 // The search field is always there; Auto-focus puts the caret in it.
-                if state.clipboardAutoFocusSearch { searchFocused = true } else { listFocused = true }
+                if clipboardSettings.autoFocusSearch { searchFocused = true } else { listFocused = true }
             } else {
                 browser.reset()
             }
@@ -182,7 +183,7 @@ struct LegacyClipboardView: View {
         let targets = browser.targets(in: clips)
         let ids = Set(targets.map(\.id))
         return HStack(spacing: 6) {
-            if state.clipboardTypeFilters {
+            if clipboardSettings.typeFilters {
                 Menu {
                     ForEach(ClipFilter.allCases) { filter in
                         Button { browser.kind = filter } label: {
@@ -200,7 +201,7 @@ struct LegacyClipboardView: View {
                 ForEach(state.pinboards) { board in
                     Button { browser.showBoard(board.name) } label: { Label(board.name, systemImage: "pin") }
                 }
-                if state.clipboardTagsEnabled, !state.clipboardTags.isEmpty {
+                if clipboardSettings.tagsEnabled, !state.clipboardTags.isEmpty {
                     Divider()
                     ForEach(state.clipboardTags) { tag in
                         Button { browser.showTag(tag.name) } label: { Label(tag.name, systemImage: "tag") }
@@ -219,7 +220,7 @@ struct LegacyClipboardView: View {
                 if state.copyClipboardItems(targets) { DroppyAudio.playCopySuccess() }
             }
             .disabled(targets.isEmpty)
-            if state.clipboardCopyFavorite, targets.count == 1, let item = targets.first {
+            if clipboardSettings.copyFavorite, targets.count == 1, let item = targets.first {
                 barButton("star.square.on.square", help: "Copy + Favorite") { state.copyAndFavorite(item) }
             }
             let allFavorite = !targets.isEmpty && targets.allSatisfy(\.isPinned)
@@ -348,6 +349,7 @@ private struct LegacyClipRow: View {
     let item: ClipboardItem
     let isSelected: Bool
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var clipboardSettings = ClipboardSettings.shared
     @State private var isHovered = false
 
     var body: some View {
@@ -377,7 +379,7 @@ private struct LegacyClipRow: View {
                     .lineLimit(1)
             }
             Spacer(minLength: 4)
-            if state.clipboardTagsEnabled {
+            if clipboardSettings.tagsEnabled {
                 ClipTagChips(tags: Array(item.tags.prefix(2)))
             }
             if let board = state.pinboards.first(where: { $0.name == item.board }) {

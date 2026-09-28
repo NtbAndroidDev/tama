@@ -80,7 +80,7 @@ struct DropletShowcase: View {
 
         case "timer":
             VStack(spacing: 10) {
-                ShowcaseHeader(symbol: symbol, title: "Timer", tint: tint, trailing: "Stopwatch")
+                ShowcaseHeader(symbol: symbol, title: "Timer", tint: tint, trailing: "Countdown")
                 HStack(spacing: 12) {
                     ShowcaseRing(progress: 0.35, tint: tint, caption: "08:21", sub: "of 25:00")
                     VStack(alignment: .leading, spacing: 6) {
@@ -681,7 +681,7 @@ private struct ShowcaseOCRFrame: View {
             }
             .frame(width: 92, height: 68)
             VStack(alignment: .leading, spacing: 4) {
-                Text("Recognised").font(.system(size: 9.5)).foregroundStyle(.white.opacity(0.5))
+                Text("Recognized").font(.system(size: 9.5)).foregroundStyle(.white.opacity(0.5))
                 Text("Order #4821\nTotal 1.250.000 ₫")
                     .font(.system(size: 11, weight: .medium))
                     .fixedSize(horizontal: false, vertical: true)

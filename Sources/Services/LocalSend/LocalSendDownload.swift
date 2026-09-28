@@ -26,7 +26,7 @@ extension LocalSendService {
             ?? "This Mac isn't on a network, so nothing can reach the page."
         // The certificate is made on this Mac, so a browser will warn about it.
         // Say so here rather than leaving them at a scary page with no idea why.
-        let https = AppState.shared.localSendEncrypted
+        let https = LocalSendSettings.shared.isEncrypted
             ? " The browser will warn about the certificate; turn off Encrypted (HTTPS) in Settings to avoid it."
             : ""
         AppState.shared.showNotification(
@@ -47,7 +47,7 @@ extension LocalSendService {
     /// What to type into the other device's browser.
     var offerURL: String? {
         guard let host = LANShareService.localIPv4Address() else { return nil }
-        let scheme = AppState.shared.localSendEncrypted ? "https" : "http"
+        let scheme = LocalSendSettings.shared.isEncrypted ? "https" : "http"
         return "\(scheme)://\(host):\(LocalSendProtocol.port)"
     }
 
@@ -88,7 +88,7 @@ extension LocalSendService {
 
     /// The PIN guards downloads exactly as it guards uploads.
     private func passesPIN(_ request: LocalSendHTTPServer.Request) -> Bool {
-        let pin = AppState.shared.localSendPIN.trimmingCharacters(in: .whitespaces)
+        let pin = LocalSendSettings.shared.pin.trimmingCharacters(in: .whitespaces)
         guard !pin.isEmpty else { return true }
         return LocalSendFormat.query(of: request.target)["pin"] == pin
     }
@@ -110,7 +110,7 @@ extension LocalSendService {
     }
 
     private func sharePage(query: [String: String]) -> LocalSendHTTPServer.Response {
-        let pin = AppState.shared.localSendPIN.trimmingCharacters(in: .whitespaces)
+        let pin = LocalSendSettings.shared.pin.trimmingCharacters(in: .whitespaces)
         guard let offer else {
             return html(Self.page(title: "Nothing shared",
                                   body: "<p class=\"note\">\(Self.escape(deviceName)) isn’t sharing any files right now.</p>"))

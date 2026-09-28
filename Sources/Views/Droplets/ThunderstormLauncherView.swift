@@ -152,7 +152,6 @@ final class ThunderstormLauncherModel: ObservableObject {
         if mode == .droplets {
             result = [LauncherSection(title: "Droplets", items: dropletItems(trimmed, all: true))]
         } else if !trimmed.isEmpty {
-            let state = AppState.shared
             if let math = mathItem(trimmed) { result.append(LauncherSection(title: "Calculator", items: [math])) }
             if let answer = answerItem(trimmed) { result.append(LauncherSection(title: "Web Result", items: [answer])) }
             let fileResults = files.results
@@ -162,14 +161,14 @@ final class ThunderstormLauncherModel: ObservableObject {
             if !droppy.isEmpty { result.append(LauncherSection(title: "Tama", items: Array(droppy.prefix(8)))) }
             let panes = paneItems(trimmed)
             if !panes.isEmpty { result.append(LauncherSection(title: "System Settings", items: panes)) }
-            if state.thunderstormSystemCommands {
+            if ThunderstormSettings.shared.systemCommands {
                 let commands = systemCommandItems(trimmed)
                 if !commands.isEmpty { result.append(LauncherSection(title: "Commands", items: commands)) }
             }
             if let weather = weatherItem(trimmed) { result.append(LauncherSection(title: "Weather", items: [weather])) }
             let others = fileResults.filter { $0.group != .applications }.prefix(24).map(fileItem)
             if !others.isEmpty { result.append(LauncherSection(title: "Files", items: Array(others))) }
-            if state.thunderstormWebSearch {
+            if ThunderstormSettings.shared.webSearch {
                 result.append(LauncherSection(title: "Search the Web", items: webItems(trimmed)))
             }
         }
@@ -421,7 +420,7 @@ final class ThunderstormLauncherModel: ObservableObject {
                 return .close
             }
         }
-        if !AppState.shared.thunderstormInlineAnswers, answer == .none {
+        if !ThunderstormSettings.shared.inlineAnswers, answer == .none {
             items.append(LauncherItem(id: "web:answer", title: "Look Up an Inline Answer",
                                       subtitle: "Ask DuckDuckGo for \u{201C}\(text)\u{201D}",
                                       icon: .symbol("sparkle.magnifyingglass", .orange)) { [weak self] in
@@ -440,7 +439,7 @@ final class ThunderstormLauncherModel: ObservableObject {
         answerTask?.cancel()
         let text = query.trimmingCharacters(in: .whitespaces)
         answer = .none
-        guard mode == .search, AppState.shared.thunderstormInlineAnswers, text.count >= 3 else { return }
+        guard mode == .search, ThunderstormSettings.shared.inlineAnswers, text.count >= 3 else { return }
         answerTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(550))
             guard !Task.isCancelled else { return }

@@ -10,6 +10,12 @@ import UniformTypeIdentifiers
 /// Pages, Player, Tray, then Tasks & Calendar, Pomodoro, High Alert and Notes.
 struct ShelfSettingsPage: View {
     @ObservedObject var state = AppState.shared
+    @ObservedObject private var captureSettings = CaptureSettings.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var hudSettings = HUDSettings.shared
+    @ObservedObject private var mediaSettings = MediaSettings.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
+    @ObservedObject private var traySettings = TraySettings.shared
     @AppStorage(LyricsService.onlineKey) private var lyricsOnline = false
 
     private var enabledWidgetCount: Int { state.droplets.filter(\.isEnabled).count }
@@ -19,15 +25,15 @@ struct ShelfSettingsPage: View {
             SettingsSection("The Shelf") {
                 SettingsGroup {
                     SettingsToggleRow("The Shelf",
-                                      subtitle: state.shelfEnabled ? nil : "Off: the size, navigation, widget and behavior options below don't apply.",
+                                      subtitle: shelfSettings.isEnabled ? nil : "Off: the size, navigation, widget and behavior options below don't apply.",
                                       icon: "tray.fill",
                                       help: "The shelf that opens out of the notch, with Home, Tray, Widgets and Calendar. Off, the notch never opens into it; volume and brightness HUDs, banners and live activities still show.",
-                                      anchor: "shelf.enable", isOn: $state.shelfEnabled)
+                                      anchor: "shelf.enable", isOn: $shelfSettings.isEnabled)
                     ChoiceTiles([
                         .init(ShelfSize.regular, "Regular", icon: "rectangle.inset.topleft.filled"),
                         .init(.enlarged, "Enlarged", icon: "arrow.up.left.and.arrow.down.right"),
-                    ], selection: $state.shelfSize, anchor: "shelf.size")
-                    .settingsDisabled(!state.shelfEnabled)
+                    ], selection: $shelfSettings.size, anchor: "shelf.size")
+                    .settingsDisabled(!shelfSettings.isEnabled)
                 }
             }
 
@@ -38,16 +44,16 @@ struct ShelfSettingsPage: View {
                         PreviewCardPicker([
                             .init(ShelfNavigationStyle.regularButtons, "Regular buttons"),
                             .init(.floatingBar, "Floating bar"),
-                        ], selection: $state.shelfNavigationStyle, thumbnailHeight: 84, anchor: "shelf.navStyle") { style in
+                        ], selection: $shelfSettings.navigationStyle, thumbnailHeight: 84, anchor: "shelf.navStyle") { style in
                             NavigationStyleThumbnail(style: style)
                         }
                         SettingsDivider()
                         SettingsToggleRow("Calendar button",
-                                          subtitle: state.shelfNavigationStyle == .floatingBar
+                                          subtitle: shelfSettings.navigationStyle == .floatingBar
                                             ? "A round button beside the floating bar. ⌘4 opens the Calendar either way."
                                             : "Regular buttons keep the Calendar in the right wing.",
-                                          anchor: "shelf.calendarButton", isOn: $state.showCalendarButton)
-                            .settingsDisabled(state.shelfNavigationStyle != .floatingBar)
+                                          anchor: "shelf.calendarButton", isOn: $shelfSettings.showCalendarButton)
+                            .settingsDisabled(shelfSettings.navigationStyle != .floatingBar)
                     }
                 }
 
@@ -57,7 +63,7 @@ struct ShelfSettingsPage: View {
                         PreviewCardPicker([
                             .init(true, "On"),
                             .init(false, "Off"),
-                        ], selection: $state.multiLiveActivities, thumbnailHeight: 84, anchor: "shelf.multiLive") { on in
+                        ], selection: $hudSettings.multiLiveActivities, thumbnailHeight: 84, anchor: "shelf.multiLive") { on in
                             MultiLiveThumbnail(isOn: on)
                         }
                     }
@@ -66,7 +72,7 @@ struct ShelfSettingsPage: View {
                 widgets
                 behavior
             }
-            .settingsDisabled(!state.shelfEnabled)
+            .settingsDisabled(!shelfSettings.isEnabled)
 
             pages
 
@@ -81,7 +87,7 @@ struct ShelfSettingsPage: View {
                                         ? "Open the lyrics card beside the player on its own when the song has lyrics."
                                         : "Needs Fetch lyrics online.",
                                       help: "Timed lyrics beside your media widget: when the shelf opens on the player and LRCLIB has the song, the lyrics card opens next to it. The card's expand button pops them out into a floating window.",
-                                      anchor: "shelf.autoExpandLyrics", isOn: $state.autoExpandLyrics)
+                                      anchor: "shelf.autoExpandLyrics", isOn: $mediaSettings.autoExpandLyrics)
                         .settingsDisabled(!lyricsOnline)
                     SettingsNote("Lyrics and Playing Next open beside the player. Playing Next shows the upcoming tracks of Apple Music's current playlist; Spotify and browsers don't share their queue.")
                 }
@@ -90,23 +96,23 @@ struct ShelfSettingsPage: View {
             SettingsSection("Tray & screenshots") {
                 SettingsGroup {
                     SettingsRow("Tray capacity", subtitle: "The oldest unpinned files leave first.", anchor: "shelf.tray") {
-                        Stepper("\(state.trayCapacity) files", value: $state.trayCapacity, in: 5...100, step: 5)
+                        Stepper("\(traySettings.capacity) files", value: $traySettings.capacity, in: 5...100, step: 5)
                     }
                     SettingsDivider()
                     ShelfFileRows()
                     SettingsDivider()
                     SettingsToggleRow("Show a preview in the corner after a snip",
                                       subtitle: "Annotate, copy, keep in the Tray, copy its text or pin it on screen.",
-                                      anchor: "shelf.screenshots", isOn: $state.showCapturePreview)
+                                      anchor: "shelf.screenshots", isOn: $captureSettings.showsPreview)
                     Group {
                         SettingsRow("Preview placement",
-                                    subtitle: state.showCapturePreview ? nil : "Needs the preview above.",
+                                    subtitle: captureSettings.showsPreview ? nil : "Needs the preview above.",
                                     help: "Bottom right keeps the card in the same place every time. Closest corner puts it in the screen corner nearest the pointer, so it doesn't land on what you just captured.",
                                     anchor: "shelf.capturePlacement")
                         ChoiceTiles(CapturePreviewPlacement.allCases.map { .init($0, $0.title, icon: $0.icon) },
-                                    selection: $state.capturePreviewPlacement)
+                                    selection: $captureSettings.previewPlacement)
                     }
-                    .settingsDisabled(!state.showCapturePreview)
+                    .settingsDisabled(!captureSettings.showsPreview)
                 }
             }
 
@@ -179,21 +185,22 @@ struct ShelfSettingsPage: View {
                                 help: "How big the round buttons under the shelf are — the Calendar, the page's own buttons and your favorites.",
                                 anchor: "shelf.floatingSize")
                     ChoiceTiles(FloatingButtonSize.allCases.map { .init($0, $0.title, icon: $0.icon) },
-                                selection: $state.floatingButtonSize)
+                                selection: $shelfSettings.floatingButtonSize)
                     SettingsDivider()
                     SettingsRow("Floating button style",
                                 help: "Glass keeps the grey capsule look with each widget's own color on its symbol. Colored fills the circle with that color. Monochrome draws every symbol white.",
                                 anchor: "shelf.floatingStyle")
                     ChoiceTiles(FloatingButtonStyle.allCases.map { .init($0, $0.title, icon: $0.icon) },
-                                selection: $state.floatingButtonStyle)
-                    if state.floatingButtonStyle == .colored {
+                                selection: $shelfSettings.floatingButtonStyle)
+                    if shelfSettings.floatingButtonStyle == .colored {
+                        SettingsDivider()
                         SettingsRow("Icon color",
                                     subtitle: "Set icon and text color for colored floating buttons.",
                                     anchor: "shelf.floatingIconColor")
                         ChoiceTiles([
                             .init(true, "Light", icon: "sun.max"),
                             .init(false, "Dark", icon: "moon"),
-                        ], selection: $state.floatingButtonLightIcons)
+                        ], selection: $shelfSettings.floatingButtonLightIcons)
                     }
                 }
             }
@@ -209,27 +216,29 @@ struct ShelfSettingsPage: View {
                             help: "Auto-collapse closes the shelf once the pointer has left it for the collapse delay; off, it stays open until you click elsewhere or press Esc. Auto-expand opens it when the pointer rests on the notch; off, it opens on a click.",
                             anchor: "shelf.behavior")
                 ToggleTiles([
-                    ToggleTile("Auto-collapse", icon: "arrow.down.right.and.arrow.up.left", isOn: $state.autoCollapse),
-                    ToggleTile("Auto-expand", icon: "arrow.up.left.and.arrow.down.right", isOn: $state.expandOnHover),
+                    ToggleTile("Auto-collapse", icon: "arrow.down.right.and.arrow.up.left", isOn: $shelfSettings.autoCollapse),
+                    ToggleTile("Auto-expand", icon: "arrow.up.left.and.arrow.down.right", isOn: $generalSettings.expandOnHover),
                 ])
                 SettingsDivider()
-                SettingsSlider("Collapse delay", value: $state.autoHideDelay, in: 0.1...3, step: 0.05,
-                               defaultValue: AppState.defaultAutoHideDelay,
+                SettingsSlider("Collapse delay", value: $generalSettings.autoHideDelay, in: 0.1...3, step: 0.05,
+                               defaultValue: GeneralSettings.defaultAutoHideDelay,
                                help: "How long the pointer can be away before the shelf closes. Needs Auto-collapse.",
-                               anchor: "shelf.collapseDelay") { String(format: "%.2f s", $0) }
-                    .settingsDisabled(!state.autoCollapse)
+                               anchor: "shelf.collapseDelay",
+                               subtitle: shelfSettings.autoCollapse ? nil : "Needs Auto-collapse.") { String(format: "%.2f s", $0) }
+                    .settingsDisabled(!shelfSettings.autoCollapse)
                 SettingsDivider()
-                SettingsSlider("Auto-expand delay", value: $state.hoverOpenDelay, in: 0...1, step: 0.05,
+                SettingsSlider("Auto-expand delay", value: $generalSettings.hoverOpenDelay, in: 0...1, step: 0.05,
                                defaultValue: 0.25,
                                help: "How long the pointer rests on the notch before the shelf opens. Needs Auto-expand.",
-                               anchor: "shelf.expandDelay") { String(format: "%.2f s", $0) }
-                    .settingsDisabled(!state.expandOnHover)
+                               anchor: "shelf.expandDelay",
+                               subtitle: generalSettings.expandOnHover ? nil : "Needs Auto-expand.") { String(format: "%.2f s", $0) }
+                    .settingsDisabled(!generalSettings.expandOnHover)
                 SettingsDivider()
                 SettingsRow("Animation speed",
                             help: "Retimes the shelf and island opening and closing without changing the animation style.",
                             anchor: "shelf.speed")
                 ChoiceTiles(ShelfAnimationSpeed.allCases.map { .init($0, $0.title, icon: $0.icon) },
-                            selection: $state.animationSpeed)
+                            selection: $shelfSettings.animationSpeed)
                 SettingsDivider()
                 SettingsRow("Animation style",
                             help: "Reduce Motion in System Settings › Accessibility turns the morph off whatever the style.",
@@ -245,8 +254,8 @@ struct ShelfSettingsPage: View {
                     .init(.snappy, "Snappy", icon: "bolt.fill"),
                     .init(.gentle, "Gentle", icon: "leaf.fill"),
                     .init(.minimal, "Minimal", icon: "minus"),
-                ], selection: $state.islandMotionStyle)
-                SettingsNote(state.islandMotionStyle.summary).padding(.top, 10)
+                ], selection: $generalSettings.islandMotionStyle)
+                SettingsNote(generalSettings.islandMotionStyle.summary).padding(.top, 10)
                 SettingsDivider()
                 SettingsRow("Gestures",
                             help: "Swipe down with two fingers on the notch to open the shelf, and sideways on the open shelf to move between its pages. Trackpad only.",
@@ -254,21 +263,21 @@ struct ShelfSettingsPage: View {
                 ChoiceTiles([
                     .init(true, "On", icon: "hand.point.up.left"),
                     .init(false, "Off", icon: "hand.raised.slash"),
-                ], selection: $state.shelfGestures)
+                ], selection: $shelfSettings.gestures)
                 SettingsDivider()
                 SettingsRow("Scroll on the notch",
-                            subtitle: !state.shelfGestures ? "Needs Gestures." : state.scrollToChangeVolume
+                            subtitle: !shelfSettings.gestures ? "Needs Gestures." : hudSettings.scrollToChangeVolume
                                 ? "Scrolling on the resting notch changes the volume, so swipe-down-to-open is off. ⌥-scroll changes brightness."
                                 : "Swiping down on the resting notch opens the shelf. ⌥-scroll still changes brightness.",
                             anchor: "shelf.scrollAction")
                 ChoiceTiles([
                     .init(true, "Volume", icon: "speaker.wave.2.fill"),
                     .init(false, "Open shelf", icon: "arrow.down.to.line"),
-                ], selection: $state.scrollToChangeVolume)
-                .settingsDisabled(!state.shelfGestures)
+                ], selection: $hudSettings.scrollToChangeVolume)
+                .settingsDisabled(!shelfSettings.gestures)
                 SettingsDivider()
                 SettingsRow("Swipe direction",
-                            subtitle: state.shelfGestures
+                            subtitle: shelfSettings.gestures
                                 ? "Which way a sideways swipe moves between pages, and an up-down swipe between the Tray's two stacks."
                                 : "Needs Gestures.",
                             help: "Standard follows the fingers: swiping left brings in the page to the right. Reversed flips it.",
@@ -276,12 +285,12 @@ struct ShelfSettingsPage: View {
                 ChoiceTiles([
                     .init(false, "Standard", icon: "arrow.left.arrow.right"),
                     .init(true, "Reversed", icon: "arrow.right.arrow.left"),
-                ], selection: $state.shelfSwipeReversed)
-                .settingsDisabled(!state.shelfGestures)
+                ], selection: $shelfSettings.swipeReversed)
+                .settingsDisabled(!shelfSettings.gestures)
                 SettingsDivider()
                 SettingsToggleRow("Open tray after drop",
                                   help: "Dropping files on the notch's Keep tile opens the Tray to show them. Off, they're added quietly and the notch shows the count.",
-                                  anchor: "shelf.openTrayAfterDrop", isOn: $state.openTrayAfterDrop)
+                                  anchor: "shelf.openTrayAfterDrop", isOn: $shelfSettings.openTrayAfterDrop)
             }
         }
     }
@@ -292,20 +301,22 @@ struct ShelfSettingsPage: View {
         SettingsSection("Pages",
                         subtitle: "One page at a time under the notch. Switch with the navigation bar, a sideways swipe, or ⌘1–⌘4 while it's open.") {
             SettingsGroup {
-                SettingsRow("Open the shelf on", anchor: "shelf.pages") {
-                    Picker("Open the shelf on", selection: $state.defaultShelfPage) {
+                SettingsRow("Open the shelf on", subtitle: shelfSettings.isEnabled ? nil : "Needs The Shelf.",
+                            anchor: "shelf.pages") {
+                    Picker("Open the shelf on", selection: $shelfSettings.defaultPage) {
                         ForEach(DefaultShelfPage.allCases) { Text($0.title).tag($0) }
                     }
                     .labelsHidden()
                     .fixedSize()
                 }
+                .settingsDisabled(!shelfSettings.isEnabled)
                 ForEach(Array(ShelfPage.allCases.enumerated()), id: \.element.id) { index, page in
                     SettingsDivider()
                     SettingsRow(page.title, subtitle: blurb(page), icon: page.iconName) {
                         KeyPill("⌘\(index + 1)")
                         Button("Open") { state.open(page) }
-                            .disabled(!state.shelfEnabled)
-                            .help(state.shelfEnabled ? "Open the \(page.title) page" : "Turn on The Shelf to open its pages")
+                            .disabled(!shelfSettings.isEnabled)
+                            .help(shelfSettings.isEnabled ? "Open the \(page.title) page" : "Turn on The Shelf to open its pages")
                             .accessibilityLabel("Open \(page.title)")
                     }
                 }
@@ -360,6 +371,7 @@ private struct ShelfSilhouette: Shape {
 /// miniature shelf on the desktop wallpaper.
 struct CustomShelfPreview: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     private let height: CGFloat = 230
 
     var body: some View {
@@ -378,8 +390,8 @@ struct CustomShelfPreview: View {
                     .padding(.top, top)
                     .padding(.horizontal, DroppyShelfMetrics.horizontalPadding)
                     .padding(.bottom, DroppyShelfMetrics.bottomPadding)
-                    .background(IslandSurfaceFill(surface: state.notchedSurfaceStyle == .black ? .black : .dynamicGlass,
-                                                  solidTop: top, tint: state.windowTintColor))
+                    .background(IslandSurfaceFill(surface: themeSettings.notchedSurfaceStyle == .black ? .black : .dynamicGlass,
+                                                  solidTop: top, tint: themeSettings.windowTintColor))
                     .clipShape(ShelfSilhouette())
                     .allowsHitTesting(false)
                     .scaleEffect(scale, anchor: .top)
@@ -405,6 +417,7 @@ struct CustomShelfPreview: View {
 struct HomeWidgetChips: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
 
     var body: some View {
         let current = state.homeWidgets
@@ -414,7 +427,7 @@ struct HomeWidgetChips: View {
                 Button { toggle(id) } label: {
                     HStack(spacing: 5) {
                         Image(systemName: isOn ? "checkmark.circle.fill" : HomeWidget.icon(id))
-                            .foregroundStyle(isOn ? AnyShapeStyle(state.accentColor.color) : AnyShapeStyle(.secondary))
+                            .foregroundStyle(isOn ? AnyShapeStyle(themeSettings.accentColor.color) : AnyShapeStyle(.secondary))
                         Text(HomeWidget.name(id))
                     }
                     .font(.system(size: 12, weight: .medium))
@@ -566,6 +579,7 @@ struct WidgetIconsPreview: View {
 /// dashed + slot while there's room. Tapping a slot picks what goes there.
 struct FavoritesEditor: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
     @State private var editing: Int?
 
     var body: some View {
@@ -590,7 +604,7 @@ struct FavoritesEditor: View {
                         FavoriteGlyph(favorite: favorite, size: 20)
                             .frame(width: 42, height: 42)
                             .background {
-                                if state.floatingButtonStyle == .colored, let tint = favorite.tint {
+                                if shelfSettings.floatingButtonStyle == .colored, let tint = favorite.tint {
                                     Circle().fill(tint)
                                         .overlay(Circle().strokeBorder(Color.white.opacity(0.22), lineWidth: 0.6))
                                 } else {

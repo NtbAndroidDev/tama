@@ -52,7 +52,7 @@ public final class FloatingBasketController: NSObject {
         let state = AppState.shared
         let wanted: [Basket] = {
             guard state.isBasketVisible else { return [] }
-            if state.basketMode == .single { return Array(state.baskets.prefix(1)) }
+            if BasketSettings.shared.mode == .single { return Array(state.baskets.prefix(1)) }
             return state.baskets.filter(\.isOpen)
         }()
         let wantedIDs = Set(wanted.map(\.id))

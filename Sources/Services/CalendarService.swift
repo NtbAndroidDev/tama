@@ -135,13 +135,13 @@ public final class CalendarService: ObservableObject {
 
     /// The calendars the page shows (nil: all of them).
     private var visibleEventCalendars: [EKCalendar]? {
-        let hidden = Self.hiddenIDs(AppState.shared.tasksHiddenCalendars)
+        let hidden = Self.hiddenIDs(CalendarSettings.shared.hiddenCalendars)
         guard !hidden.isEmpty else { return nil }
         return store.calendars(for: .event).filter { !hidden.contains($0.calendarIdentifier) }
     }
 
     private var visibleReminderLists: [EKCalendar]? {
-        let hidden = Self.hiddenIDs(AppState.shared.tasksHiddenLists)
+        let hidden = Self.hiddenIDs(CalendarSettings.shared.hiddenLists)
         guard !hidden.isEmpty else { return nil }
         return store.calendars(for: .reminder).filter { !hidden.contains($0.calendarIdentifier) }
     }
@@ -227,7 +227,7 @@ public final class CalendarService: ObservableObject {
     private func fetchEvents<T: Sendable>(from start: Date, to end: Date,
                                           map: @escaping @Sendable ([EKEvent]) -> T,
                                           completion: @escaping @MainActor @Sendable (T) -> Void) {
-        let hidden = Self.hiddenIDs(AppState.shared.tasksHiddenCalendars)
+        let hidden = Self.hiddenIDs(CalendarSettings.shared.hiddenCalendars)
         onFetchQueue({ store in
             var calendars: [EKCalendar]?
             if !hidden.isEmpty {
@@ -246,14 +246,13 @@ public final class CalendarService: ObservableObject {
     }
 
     public func reload() {
-        let state = AppState.shared
         let calendar = Calendar.current
         let end = calendar.date(byAdding: .day, value: 8, to: anchor) ?? anchor
         reloadBusyDays()
 
         reloadGeneration += 1
         let generation = reloadGeneration
-        guard hasEventAccess, state.tasksShowEvents else {
+        guard hasEventAccess, CalendarSettings.shared.showEvents else {
             applyEvents([], end: end, generation: generation)
             return
         }
@@ -268,10 +267,9 @@ public final class CalendarService: ObservableObject {
     }
 
     private func applyEvents(_ entries: [AgendaEntry], end: Date, generation: Int) {
-        let state = AppState.shared
         // Keep the listed reminders until the fresh ones arrive, so the list
         // doesn't blink (or flash "No tasks or events") on every store change.
-        let showTasks = hasReminderAccess && state.tasksShowTasks
+        let showTasks = hasReminderAccess && CalendarSettings.shared.showTasks
         let interim = showTasks ? agenda.filter { $0.kind == .reminder } : []
         agenda = Self.sorted(entries + interim)
 
@@ -280,7 +278,7 @@ public final class CalendarService: ObservableObject {
             isLoading = false
             return
         }
-        let hideUndated = state.tasksHideUndated
+        let hideUndated = CalendarSettings.shared.hideUndated
         // A bounded predicate drops reminders without a due date, so fetch every
         // open reminder and keep the undated ones plus those due before `end`.
         let predicate = store.predicateForIncompleteReminders(withDueDateStarting: nil, ending: nil, calendars: lists)
@@ -414,7 +412,7 @@ public final class CalendarService: ObservableObject {
                 return prefix
             }
         }
-        let preferred = AppState.shared.tasksDefaultList
+        let preferred = CalendarSettings.shared.defaultList
         if !preferred.isEmpty, let list = lists.first(where: { $0.calendarIdentifier == preferred }) { return list }
         return store.defaultCalendarForNewReminders()
     }
@@ -458,7 +456,7 @@ public final class CalendarService: ObservableObject {
             throw ReminderError.needsDate
         }
         let calendars = store.calendars(for: .event).filter(\.allowsContentModifications)
-        let preferred = AppState.shared.tasksDefaultCalendar
+        let preferred = CalendarSettings.shared.defaultCalendar
         guard let calendar = calendars.first(where: { $0.calendarIdentifier == preferred })
                 ?? draft.listName.flatMap({ name in calendars.first { $0.title.localizedCaseInsensitiveCompare(name) == .orderedSame } })
                 ?? store.defaultCalendarForNewEvents else { throw ReminderError.noCalendar }
@@ -524,7 +522,7 @@ public final class CalendarService: ObservableObject {
     }
 
     private func sweepCompleted() {
-        let delay = TimeInterval(max(AppState.shared.tasksCleanupDelay, 0))
+        let delay = TimeInterval(max(CalendarSettings.shared.cleanupDelay, 0))
         let expired = completed.filter { Date().timeIntervalSince($0.value.at) >= delay }.map(\.key)
         if !expired.isEmpty {
             for id in expired { completed[id] = nil }

@@ -54,11 +54,11 @@ extension AppState {
         pomodoroEndDate = Date().addingTimeInterval(TimeInterval(pomodoroCycleSeconds))
         let title = isPomodoroWorkCycle ? "Break Finished!" : "Focus Time Completed!"
         let message = isPomodoroWorkCycle
-            ? "Time to focus for \(pomodoroWorkMinutes) minutes."
-            : "Take a well-deserved \(pomodoroBreakMinutes) minute break."
+            ? "Time to focus for \(PomodoroSettings.shared.workMinutes) minutes."
+            : "Take a well-deserved \(PomodoroSettings.shared.breakMinutes) minute break."
         showNotification(appName: "Pomodoro", title: title, message: message)
         SystemNotifier.post(title: title, body: message)
-        if soundEffects { NSSound(named: "Glass")?.play() }
+        if GeneralSettings.shared.soundEffects { NSSound(named: "Glass")?.play() }
         syncPomodoroAmbient()
         runFocusShortcut(on: isPomodoroWorkCycle)
     }
@@ -80,7 +80,7 @@ extension AppState {
         pausePomodoro()
         pomodoroHasStarted = false
         isPomodoroWorkCycle = true
-        pomodoroSecondsRemaining = pomodoroWorkMinutes * 60
+        pomodoroSecondsRemaining = PomodoroSettings.shared.workMinutes * 60
     }
 
     /// Before starting: pick which cycle the ruler sets and Start begins.
@@ -92,9 +92,9 @@ extension AppState {
 
     /// The ruler's value: the length of the cycle Start begins.
     public var pomodoroRulerMinutes: Int {
-        get { isPomodoroWorkCycle ? pomodoroWorkMinutes : pomodoroBreakMinutes }
+        get { isPomodoroWorkCycle ? PomodoroSettings.shared.workMinutes : PomodoroSettings.shared.breakMinutes }
         set {
-            if isPomodoroWorkCycle { pomodoroWorkMinutes = newValue } else { pomodoroBreakMinutes = newValue }
+            if isPomodoroWorkCycle { PomodoroSettings.shared.workMinutes = newValue } else { PomodoroSettings.shared.breakMinutes = newValue }
         }
     }
 
@@ -116,14 +116,14 @@ extension AppState {
     /// Pomodoro › Momentum: finished focus sessions today and the day streak.
     public var pomodoroMomentum: PomodoroMomentum {
         get {
-            PomodoroMomentum(sessionsToday: pomodoroSessionsToday, day: pomodoroMomentumDay,
-                             streakDays: pomodoroStreakDays, bestStreak: pomodoroBestStreak)
+            PomodoroMomentum(sessionsToday: PomodoroSettings.shared.sessionsToday, day: PomodoroSettings.shared.momentumDay,
+                             streakDays: PomodoroSettings.shared.streakDays, bestStreak: PomodoroSettings.shared.bestStreak)
         }
         set {
-            pomodoroSessionsToday = newValue.sessionsToday
-            pomodoroMomentumDay = newValue.day
-            pomodoroStreakDays = newValue.streakDays
-            pomodoroBestStreak = newValue.bestStreak
+            PomodoroSettings.shared.sessionsToday = newValue.sessionsToday
+            PomodoroSettings.shared.momentumDay = newValue.day
+            PomodoroSettings.shared.streakDays = newValue.streakDays
+            PomodoroSettings.shared.bestStreak = newValue.bestStreak
         }
     }
 
@@ -133,7 +133,7 @@ extension AppState {
         let before = pomodoroMomentum
         let after = before.recording(Date())
         pomodoroMomentum = after
-        guard pomodoroShowsMomentum, after.streakDays > before.currentStreak(on: Date()), after.streakDays > 1 else { return }
+        guard PomodoroSettings.shared.showsMomentum, after.streakDays > before.currentStreak(on: Date()), after.streakDays > 1 else { return }
         showNotification(appName: "Pomodoro", title: "\(after.streakDays)-day streak",
                          message: "That's \(after.streakDays) days in a row with a finished focus session.",
                          icon: "flame.fill")
@@ -146,13 +146,13 @@ extension AppState {
     // MARK: Ambient sound
 
     public var pomodoroAmbient: AmbientSoundService.Sound {
-        AmbientSoundService.Sound(rawValue: pomodoroAmbientSound) ?? .brown
+        AmbientSoundService.Sound(rawValue: PomodoroSettings.shared.ambientSound) ?? .brown
     }
 
     /// Plays while a focus cycle runs with ambient sound on; quiet otherwise.
     func syncPomodoroAmbient() {
-        if pomodoroAmbientEnabled, isPomodoroActive, isPomodoroWorkCycle {
-            AmbientSoundService.shared.play(pomodoroAmbient, volume: pomodoroAmbientVolume)
+        if PomodoroSettings.shared.ambientEnabled, isPomodoroActive, isPomodoroWorkCycle {
+            AmbientSoundService.shared.play(pomodoroAmbient, volume: PomodoroSettings.shared.ambientVolume)
         } else {
             AmbientSoundService.shared.stop()
         }
@@ -165,7 +165,7 @@ extension AppState {
 
     /// macOS has no public API to switch Focus, so two user-made Shortcuts do it.
     func runFocusShortcut(on: Bool) {
-        guard pomodoroFocusShortcuts, ShortcutsLibrary.isAvailable else { return }
+        guard PomodoroSettings.shared.focusShortcuts, ShortcutsLibrary.isAvailable else { return }
         let name = on ? Self.focusOnShortcut : Self.focusOffShortcut
         Task.detached(priority: .userInitiated) {
             let process = Process()

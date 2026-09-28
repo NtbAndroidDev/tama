@@ -28,7 +28,7 @@ public final class CapsLockService {
     private init() {}
 
     public func sync() {
-        guard AppState.shared.showCapsLockHUD else {
+        guard HUDSettings.shared.showCapsLockHUD else {
             [globalMonitor, localMonitor].compactMap { $0 }.forEach(NSEvent.removeMonitor)
             globalMonitor = nil
             localMonitor = nil
@@ -103,7 +103,7 @@ public final class CapsLockService {
     private func update(_ on: Bool) {
         guard on != isOn else { return }
         isOn = on
-        guard AppState.shared.showCapsLockHUD else { return }
+        guard HUDSettings.shared.showCapsLockHUD else { return }
         LiveActivityCenter.shared.post(LiveActivity(
             id: "capsLock", icon: on ? "capslock.fill" : "capslock",
             tint: on ? DS.Palette.success : .white.opacity(0.7),
@@ -144,7 +144,7 @@ public final class RecordingIndicatorService: ObservableObject {
     private init() {}
 
     public func sync() {
-        if AppState.shared.showRecordingHUD {
+        if HUDSettings.shared.showRecordingHUD {
             start()
         } else {
             stop()
@@ -296,7 +296,7 @@ public final class RecordingIndicatorService: ObservableObject {
 
     private func updateActivity() {
         let active = isMicrophoneInUse || isScreenRecording
-        guard active, AppState.shared.showRecordingHUD else {
+        guard active, HUDSettings.shared.showRecordingHUD else {
             ticker?.invalidate()
             ticker = nil
             startedAt = nil
@@ -360,7 +360,7 @@ public final class FocusModeService: ObservableObject {
     private init() {}
 
     public func sync() {
-        guard AppState.shared.showFocusHUD else {
+        guard HUDSettings.shared.showFocusHUD else {
             source?.cancel()
             source = nil
             status = .unknown
@@ -402,7 +402,7 @@ public final class FocusModeService: ObservableObject {
         let new = Self.read()
         let old = status
         status = new
-        guard AppState.shared.showFocusHUD else { return }
+        guard HUDSettings.shared.showFocusHUD else { return }
         switch (old, new) {
         case let (.off, .on(name)):
             announce(on: true, name: name)
@@ -482,7 +482,7 @@ public final class ConnectivityService: ObservableObject {
     /// The HUD follows its card; the path is watched either way, since other
     /// features can ask whether the Mac is online.
     public func sync() {
-        if !AppState.shared.showOfflineHUD {
+        if !HUDSettings.shared.showOfflineHUD {
             offlineWork?.cancel()
             offlineWork = nil
         }
@@ -495,10 +495,10 @@ public final class ConnectivityService: ObservableObject {
         isOnline = online
         offlineWork?.cancel()
         offlineWork = nil
-        guard hasFirstPath, wasOnline, !online, AppState.shared.showOfflineHUD else { return }
+        guard hasFirstPath, wasOnline, !online, HUDSettings.shared.showOfflineHUD else { return }
         let work = DispatchWorkItem {
             let service = ConnectivityService.shared
-            guard !service.isOnline, AppState.shared.showOfflineHUD else { return }
+            guard !service.isOnline, HUDSettings.shared.showOfflineHUD else { return }
             AppState.shared.showNotification(
                 appName: "Network", title: "No Internet Connection",
                 message: "Connect to Wi-Fi, Ethernet, or Personal Hotspot to continue.",

@@ -7,6 +7,7 @@ import AppKit
 struct ScratchpadConsoleView: View {
     @ObservedObject private var store = NotesStore.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var notesSettings = NotesSettings.shared
     @State private var openID: UUID?
     @StateObject private var controller = RichTextController()
     @State private var editorHeight: CGFloat = 0
@@ -87,7 +88,7 @@ struct ScratchpadConsoleView: View {
 
     @ViewBuilder
     private var syncBadge: some View {
-        if state.notesAppleSync {
+        if notesSettings.appleSync {
             switch store.syncStatus {
             case .syncing:
                 ProgressView().controlSize(.mini).tint(DS.Palette.textPrimary)
@@ -111,7 +112,7 @@ struct ScratchpadConsoleView: View {
 
     @ViewBuilder
     private var syncError: some View {
-        if state.notesAppleSync {
+        if notesSettings.appleSync {
             switch store.syncStatus {
             case let .unreachable(detail):
                 errorLine("Couldn't reach Apple Notes. Allow Tama to control Notes in System Settings › Privacy & Security › Automation.",
@@ -176,10 +177,10 @@ struct ScratchpadConsoleView: View {
                            onChange: { store.update(note.id, with: $0) },
                            onHeight: { grow(to: $0) })
                 .id(note.id)
-                .padding(.bottom, state.notesShowToolbar ? 30 : 0)
+                .padding(.bottom, notesSettings.showToolbar ? 30 : 0)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .overlay(alignment: .bottom) {
-                    if state.notesShowToolbar {
+                    if notesSettings.showToolbar {
                         NoteFormatBar(controller: controller)
                     }
                 }
@@ -190,11 +191,11 @@ struct ScratchpadConsoleView: View {
     /// Grow canvas: the console gets taller with the note, up to a limit.
     private func grow(to contentHeight: CGFloat) {
         editorHeight = contentHeight
-        guard state.notesGrowCanvas else {
+        guard notesSettings.growCanvas else {
             if state.dropletConsoleHeight != nil { state.dropletConsoleHeight = nil }
             return
         }
-        let chrome: CGFloat = 34 + 6 + (state.notesShowToolbar ? 30 : 0) + 20
+        let chrome: CGFloat = 34 + 6 + (notesSettings.showToolbar ? 30 : 0) + 20
         let wanted = min(max(contentHeight + chrome, DroppyShelfMetrics.widgetsConsoleHeight), DroppyShelfMetrics.notesMaxConsoleHeight)
         let rounded = (wanted / 10).rounded(.up) * 10
         let height: CGFloat? = rounded == DroppyShelfMetrics.widgetsConsoleHeight ? nil : rounded

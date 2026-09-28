@@ -21,16 +21,16 @@ extension AppState {
         mediaAutoHideWork?.cancel()
         mediaAutoHideWork = nil
         let track = mediaService.currentTrack
-        guard mediaAutoHide, track.hasTrack, !track.isPlaying else {
+        guard MediaSettings.shared.mediaAutoHide, track.hasTrack, !track.isPlaying else {
             if isMediaAutoHidden { withAnimation(DS.Motion.fluid) { isMediaAutoHidden = false } }
             return
         }
         let work = DispatchWorkItem { [weak self] in
-            guard let self, self.mediaAutoHide, !self.mediaService.currentTrack.isPlaying else { return }
+            guard let self, MediaSettings.shared.mediaAutoHide, !self.mediaService.currentTrack.isPlaying else { return }
             withAnimation(DS.Motion.morphClose) { self.isMediaAutoHidden = true }
         }
         mediaAutoHideWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + max(mediaAutoHideDelay, 1), execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(MediaSettings.shared.mediaAutoHideDelay, 1), execute: work)
     }
 
     // MARK: Wings
@@ -43,11 +43,11 @@ extension AppState {
     /// black bar across the menu bar. On a notched screen the title lives in
     /// the open player instead, and here it is only the floating pill's.
     public func showsTrackTitleInWings(on displayID: CGDirectDisplayID?) -> Bool {
-        Self.showsTrackTitle(enabled: notchTrackTitle,
+        Self.showsTrackTitle(enabled: MediaSettings.shared.notchTrackTitle,
                              hasNotch: notchHeight(on: displayID) > 0,
                              hasTrack: mediaService.currentTrack.hasTrack,
                              showsMedia: showsMedia(on: displayID),
-                             activitiesFirst: compactHUDPriority == .activitiesFirst
+                             activitiesFirst: HUDSettings.shared.compactHUDPriority == .activitiesFirst
                                  && LiveActivityCenter.shared.top(.urgent) != nil)
     }
 
@@ -62,13 +62,13 @@ extension AppState {
 
     /// Settings › HUDs › Filter media sources: apps switched off.
     public var blockedMediaSourceIDs: Set<String> {
-        get { Set(blockedMediaSourcesStorage.split(separator: "\n").map(String.init)) }
-        set { blockedMediaSourcesStorage = newValue.sorted().joined(separator: "\n") }
+        get { Set(MediaSettings.shared.blockedMediaSourcesStorage.split(separator: "\n").map(String.init)) }
+        set { MediaSettings.shared.blockedMediaSourcesStorage = newValue.sorted().joined(separator: "\n") }
     }
 
     /// Whether Tama may show and control media from this app.
     public func allowsMediaSource(_ bundleID: String) -> Bool {
-        guard filterMediaSources, !bundleID.isEmpty else { return true }
+        guard MediaSettings.shared.filterMediaSources, !bundleID.isEmpty else { return true }
         return !blockedMediaSourceIDs.contains(bundleID)
     }
 
@@ -77,20 +77,20 @@ extension AppState {
     /// The buttons either side of the transport for a source.
     public func mediaButtons(for source: MediaButtonSource) -> (left: MediaWidgetButton, right: MediaWidgetButton) {
         switch source {
-        case .appleMusic: (musicLeftButton, musicRightButton)
-        case .spotify: (spotifyLeftButton, spotifyRightButton)
-        case .regular: (regularLeftButton, regularRightButton)
+        case .appleMusic: (MediaSettings.shared.musicLeftButton, MediaSettings.shared.musicRightButton)
+        case .spotify: (MediaSettings.shared.spotifyLeftButton, MediaSettings.shared.spotifyRightButton)
+        case .regular: (MediaSettings.shared.regularLeftButton, MediaSettings.shared.regularRightButton)
         }
     }
 
     public func setMediaButton(_ button: MediaWidgetButton, for source: MediaButtonSource, left: Bool) {
         switch (source, left) {
-        case (.appleMusic, true): musicLeftButton = button
-        case (.appleMusic, false): musicRightButton = button
-        case (.spotify, true): spotifyLeftButton = button
-        case (.spotify, false): spotifyRightButton = button
-        case (.regular, true): regularLeftButton = button
-        case (.regular, false): regularRightButton = button
+        case (.appleMusic, true): MediaSettings.shared.musicLeftButton = button
+        case (.appleMusic, false): MediaSettings.shared.musicRightButton = button
+        case (.spotify, true): MediaSettings.shared.spotifyLeftButton = button
+        case (.spotify, false): MediaSettings.shared.spotifyRightButton = button
+        case (.regular, true): MediaSettings.shared.regularLeftButton = button
+        case (.regular, false): MediaSettings.shared.regularRightButton = button
         }
     }
 

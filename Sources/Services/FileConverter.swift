@@ -645,7 +645,7 @@ extension ConvertActions {
     /// destination (Downloads by default).
     static var destinationFolder: URL {
         if let smart = SmartExport.folder(for: .converted) { return smart }
-        let custom = AppState.shared.convertDestination
+        let custom = FileActionSettings.shared.convertDestination
         if !custom.isEmpty, FileManager.default.fileExists(atPath: custom) {
             return URL(fileURLWithPath: custom, isDirectory: true)
         }
@@ -667,7 +667,7 @@ extension ConvertActions {
                 saved.append(output)
             }
         }
-        switch state.afterConvertAction {
+        switch FileActionSettings.shared.afterConvertAction {
         case .reveal: NSWorkspace.shared.activateFileViewerSelecting(saved)
         case .openFolder: NSWorkspace.shared.open(folder)
         case .addToShelf: state.addShelfItems(saved.map { ShelfItem(url: $0) })

@@ -93,7 +93,7 @@ public final class ClipboardWindowController: NSObject {
     private func setVisible(_ visible: Bool) {
         hideWork?.cancel()
         if visible {
-            let isLegacy = AppState.shared.clipboardLayout == .legacy
+            let isLegacy = ClipboardSettings.shared.layout == .legacy
             // A layout switch while open: the other window goes at once.
             let other = isLegacy ? panel : legacyPanel
             other?.orderOut(nil)
@@ -161,7 +161,7 @@ public final class ClipboardWindowController: NSObject {
     public func paste(_ items: [ClipboardItem], plainText: Bool = false) {
         guard !items.isEmpty else { return }
         // Read before hiding: closing the clipboard clears the paste mode.
-        let pastesIntoApp = AppState.shared.clipboardPasteIntoApp || AppState.shared.isClipboardPasteMode
+        let pastesIntoApp = ClipboardSettings.shared.pasteIntoApp || AppState.shared.isClipboardPasteMode
         guard ClipboardService.shared.copyToPasteboard(items: items, plainText: plainText) else {
             AppState.shared.showNotification(appName: "Clipboard", title: "Can't paste this clip",
                                              message: "Its image or file is no longer on this Mac.")

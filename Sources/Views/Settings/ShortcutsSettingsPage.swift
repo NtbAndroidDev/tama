@@ -96,7 +96,7 @@ struct KeyboardShortcutsSettingsPage: View {
             }
 
             if filter.isEmpty {
-                SettingsSection("Built in") {
+                SettingsSection("Built-in") {
                     SettingsGroup {
                         SettingsRow("Switch shelf page (shelf focused)") { KeyPill("⌘1 – ⌘4") }
                         SettingsDivider()

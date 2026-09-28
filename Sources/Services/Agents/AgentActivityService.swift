@@ -148,7 +148,7 @@ public final class AgentActivityService: ObservableObject {
     private func watchClaude() {
         claudeSource?.cancel()
         claudeSource = nil
-        guard running, AppState.shared.agentsClaude else { return }
+        guard running, AgentsSettings.shared.claude else { return }
         let url = ClaudeHooks.eventsURL
         let fm = FileManager.default
         // Nothing to follow until the hooks are in (or have written before).
@@ -274,9 +274,9 @@ public final class AgentActivityService: ObservableObject {
 
     private func poll() {
         guard running else { return }
-        if AppState.shared.agentsCodex { pollCodex() } else { removeSessions(of: .codex) }
-        if AppState.shared.agentsCursor { pollCursor() } else { removeSessions(of: .cursor) }
-        if !AppState.shared.agentsClaude { removeSessions(of: .claude) }
+        if AgentsSettings.shared.codex { pollCodex() } else { removeSessions(of: .codex) }
+        if AgentsSettings.shared.cursor { pollCursor() } else { removeSessions(of: .cursor) }
+        if !AgentsSettings.shared.claude { removeSessions(of: .claude) }
         // A session that went quiet: finished ones fade after a while, and a
         // "working" one with no news for five minutes has probably crashed.
         let now = Date()
@@ -381,7 +381,7 @@ public final class AgentActivityService: ObservableObject {
 
     private func applyCodex(_ read: CodexRead) {
         codexBusy = false
-        guard running, AppState.shared.agentsCodex else { return }
+        guard running, AgentsSettings.shared.codex else { return }
         if codexAvailable != read.available { codexAvailable = read.available }
         guard read.available, let file = read.file else { return }
         guard read.isLive else {
@@ -488,7 +488,7 @@ public final class AgentActivityService: ObservableObject {
 
     /// "Background task completed" (or failed, or waiting on you).
     private func announce(_ session: AgentSession) {
-        guard AppState.shared.agentsNotifyDone else { return }
+        guard AgentsSettings.shared.notifyDone else { return }
         let title: String
         switch session.activity {
         case .finished: title = "\(session.kind.name) finished"
@@ -504,7 +504,7 @@ public final class AgentActivityService: ObservableObject {
 
     /// The glyph and spinner in the resting notch while an agent works.
     private func publishActivity() {
-        guard AppState.shared.agentsShowInNotch, let working = sessions.first(where: { $0.activity.isWorking }) else {
+        guard AgentsSettings.shared.showInNotch, let working = sessions.first(where: { $0.activity.isWorking }) else {
             LiveActivityCenter.shared.end("agents")
             return
         }

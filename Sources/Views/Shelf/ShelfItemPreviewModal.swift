@@ -265,7 +265,7 @@ public struct ShelfItemPreviewModal: View {
                 isExtractingOCR = false
                 withAnimation(DS.Motion.respecting(reduceMotion, DS.Motion.fluid)) { ocrText = clean }
                 guard clean.isEmpty else {
-                    if AppState.shared.autoCopyOCRText {
+                    if TraySettings.shared.autoCopyOCRText {
                         AppState.shared.autoCopyRecognizedText(clean)
                     } else {
                         DroppyAudio.playDropSuccess()

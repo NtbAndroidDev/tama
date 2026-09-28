@@ -81,7 +81,7 @@ public final class LiveActivityCenter: ObservableObject {
         if let expiresAt = activity.expiresAt {
             let duration = expiresAt.timeIntervalSinceNow
             if duration > 0, duration <= Self.briefActivity {
-                activity.expiresAt = Date().addingTimeInterval(min(max(AppState.shared.finishedHUDLinger, 1), 10))
+                activity.expiresAt = Date().addingTimeInterval(min(max(HUDSettings.shared.finishedHUDLinger, 1), 10))
             }
         }
         if let index = activities.firstIndex(where: { $0.id == activity.id }) {
@@ -180,18 +180,100 @@ struct ActivitySpinner: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { context in
-            let turns = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.1) / 1.1
-            ZStack {
-                Circle().stroke(tint.opacity(0.2), lineWidth: 2.2)
-                Circle()
-                    .trim(from: 0, to: 0.28)
-                    .stroke(tint, style: StrokeStyle(lineWidth: 2.2, lineCap: .round))
-                    .rotationEffect(.degrees(reduceMotion ? 0 : turns * 360))
-            }
+        ZStack {
+            Circle().stroke(tint.opacity(0.2), lineWidth: 2.2)
+            SpinnerArc(tint: tint, spins: !reduceMotion)
         }
         .frame(width: size, height: size)
         .accessibilityLabel("Working")
+    }
+}
+
+/// The spinner's turning arc, run by Core Animation in the render server. A
+/// TimelineView re-ran the body and committed a new layer tree 30 times a
+/// second for as long as an agent worked, which could be hours on end.
+private struct SpinnerArc: NSViewRepresentable {
+    var tint: Color
+    var spins: Bool
+
+    func makeNSView(context: Context) -> SpinnerArcView { SpinnerArcView() }
+
+    func updateNSView(_ view: SpinnerArcView, context: Context) {
+        view.color = NSColor(tint)
+        view.spins = spins
+    }
+}
+
+private final class SpinnerArcView: NSView {
+    private static let turnKey = "turn"
+    private let arc = CAShapeLayer()
+
+    var color: NSColor = .white {
+        didSet { if color != oldValue { applyColor() } }
+    }
+    var spins = true {
+        didSet { if spins != oldValue { updateTurning() } }
+    }
+
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        arc.fillColor = nil
+        arc.lineWidth = 2.2
+        arc.lineCap = .round
+        layer?.addSublayer(arc)
+        applyColor()
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    // Purely decorative: clicks belong to the SwiftUI view underneath.
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func layout() {
+        super.layout()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        arc.frame = bounds
+        // A quarter-ish arc from three o'clock running clockwise, as the
+        // trimmed SwiftUI circle drew it (AppKit's y axis points up).
+        let path = CGMutablePath()
+        path.addArc(center: CGPoint(x: bounds.midX, y: bounds.midY),
+                    radius: min(bounds.width, bounds.height) / 2,
+                    startAngle: 0, endAngle: -0.28 * 2 * .pi, clockwise: true)
+        arc.path = path
+        CATransaction.commit()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateTurning()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyColor()
+    }
+
+    private func applyColor() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            arc.strokeColor = color.cgColor
+        }
+    }
+
+    private func updateTurning() {
+        guard spins, window != nil else {
+            arc.removeAnimation(forKey: Self.turnKey)
+            return
+        }
+        guard arc.animation(forKey: Self.turnKey) == nil else { return }
+        let turn = CABasicAnimation(keyPath: "transform.rotation.z")
+        turn.fromValue = 0
+        turn.toValue = -2 * Double.pi
+        turn.duration = 1.1
+        turn.repeatCount = .infinity
+        turn.isRemovedOnCompletion = false
+        arc.add(turn, forKey: Self.turnKey)
     }
 }
 

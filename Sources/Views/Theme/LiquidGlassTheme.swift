@@ -44,58 +44,58 @@ public struct LiquidGlassTheme: Sendable {
     
     @MainActor
     public static var dynamicAccent: Color {
-        AppState.shared.accentColor.color
+        ThemeSettings.shared.accentColor.color
     }
     
     @MainActor
     public static var dynamicGlow: Color {
-        AppState.shared.accentColor.color.opacity(0.35 * AppState.shared.borderGlowIntensity)
+        ThemeSettings.shared.accentColor.color.opacity(0.35 * ThemeSettings.shared.borderGlowIntensity)
     }
 }
 
 @MainActor
 public final class DroppyAudio {
     public static func playTick() {
-        if AppState.shared.soundEffects {
+        if GeneralSettings.shared.soundEffects {
             NSSound(named: "Tink")?.play()
         }
-        if AppState.shared.hapticFeedback {
+        if GeneralSettings.shared.hapticFeedback {
             NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default)
         }
     }
     
     public static func playDropSuccess() {
-        if AppState.shared.soundEffects {
+        if GeneralSettings.shared.soundEffects {
             NSSound(named: "Pop")?.play()
         }
-        if AppState.shared.hapticFeedback {
+        if GeneralSettings.shared.hapticFeedback {
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .default)
         }
     }
     
     public static func playCopySuccess() {
-        if AppState.shared.soundEffects {
+        if GeneralSettings.shared.soundEffects {
             NSSound(named: "Purr")?.play()
         }
-        if AppState.shared.hapticFeedback {
+        if GeneralSettings.shared.hapticFeedback {
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .default)
         }
     }
     
     public static func playDelete() {
-        if AppState.shared.soundEffects {
+        if GeneralSettings.shared.soundEffects {
             NSSound(named: "Basso")?.play()
         }
-        if AppState.shared.hapticFeedback {
+        if GeneralSettings.shared.hapticFeedback {
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .default)
         }
     }
     
     public static func playSnip() {
-        if AppState.shared.soundEffects {
+        if GeneralSettings.shared.soundEffects {
             NSSound(named: "Hero")?.play()
         }
-        if AppState.shared.hapticFeedback {
+        if GeneralSettings.shared.hapticFeedback {
             NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default)
         }
     }
@@ -216,6 +216,7 @@ public struct LiquidGlassBackgroundModifier: ViewModifier {
     /// Observed so the border and glow retint as soon as the accent or glow
     /// intensity changes in Settings.
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
 
     public init(
         cornerRadius: CGFloat = 20,
@@ -247,15 +248,15 @@ public struct LiquidGlassBackgroundModifier: ViewModifier {
     /// Liquid Glass (it has to meet the black bezel).
     private var surface: IslandSurfaceStyle {
         if isNotchAttached {
-            return state.notchedSurfaceStyle == .liquidGlass ? .dynamicGlass : state.notchedSurfaceStyle
+            return themeSettings.notchedSurfaceStyle == .liquidGlass ? .dynamicGlass : themeSettings.notchedSurfaceStyle
         }
-        return state.notchlessSurfaceStyle
+        return themeSettings.notchlessSurfaceStyle
     }
 
-    private var tint: Color? { state.windowTintColor }
+    private var tint: Color? { themeSettings.windowTintColor }
 
     private var showsOutline: Bool {
-        state.subtleOutline && (!isResting || state.outlineInRestingState)
+        themeSettings.subtleOutline && (!isResting || themeSettings.outlineInRestingState)
     }
 
     public func body(content: Content) -> some View {
@@ -268,7 +269,7 @@ public struct LiquidGlassBackgroundModifier: ViewModifier {
                     .stroke(
                         LinearGradient(
                             colors: [
-                                isNotchAttached ? Color.clear : (isHovered ? LiquidGlassTheme.dynamicAccent.opacity(0.65 * state.borderGlowIntensity) : Color.white.opacity(0.20)),
+                                isNotchAttached ? Color.clear : (isHovered ? LiquidGlassTheme.dynamicAccent.opacity(0.65 * themeSettings.borderGlowIntensity) : Color.white.opacity(0.20)),
                                 Color.white.opacity(0.08),
                                 Color.white.opacity(0.03)
                             ],
@@ -318,7 +319,7 @@ public struct LiquidGlassBackgroundModifier: ViewModifier {
     // A notch-attached island has no border (its top is the bezel), so its
     // glow is a soft accent halo below it, only while hovered.
     private var shadowColor: Color {
-        let glow = state.borderGlowIntensity
+        let glow = themeSettings.borderGlowIntensity
         if isNotchAttached {
             return isHovered && glow > 0 ? LiquidGlassTheme.dynamicAccent.opacity(min(0.4 * glow, 0.6)) : .clear
         }

@@ -426,7 +426,7 @@ public final class MediaService: ObservableObject {
     /// if asked, starts it playing once it has launched. False when it isn't installed.
     @discardableResult
     public func launchDefaultMusicApp(andPlay play: Bool) -> Bool {
-        launch(AppState.shared.defaultMusicApp, andPlay: play)
+        launch(MediaSettings.shared.defaultMusicApp, andPlay: play)
     }
 
     /// Opens Music or Spotify and, if asked, plays once it answers.
@@ -454,7 +454,7 @@ public final class MediaService: ObservableObject {
     /// on the key; false leaves it to macOS (a browser tab, which only the
     /// system route reaches, or the setting is off).
     func handlePlaybackKey(_ key: MediaKeys.Key) -> Bool {
-        switch AppState.shared.playbackKeysMode {
+        switch HUDSettings.shared.playbackKeysMode {
         case .system:
             return false
         case .nowPlaying:
@@ -469,7 +469,7 @@ public final class MediaService: ObservableObject {
                 return false
             }
         case .defaultApp:
-            let app = AppState.shared.defaultMusicApp
+            let app = MediaSettings.shared.defaultMusicApp
             let running = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == app.bundleID }
             guard running else {
                 return key == .playPause ? launchDefaultMusicApp(andPlay: true) : false
@@ -857,7 +857,7 @@ public final class MediaService: ObservableObject {
             // Filter media sources: switched-off apps are treated as not running.
             let running = NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier)
                 .filter { state.allowsMediaSource($0) }
-            return (running, state.hideIncognitoMedia)
+            return (running, MediaSettings.shared.hideIncognitoMedia)
         }
         let audible = audibleBundleIDs()
         return await withCheckedContinuation { cont in

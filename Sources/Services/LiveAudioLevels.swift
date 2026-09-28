@@ -61,7 +61,7 @@ final class LiveAudioLevels: ObservableObject {
 
     /// Starts or stops the tap to match the setting and what's on screen.
     func sync() {
-        let enabled = AppState.shared.liveAudioVisualizer
+        let enabled = MediaSettings.shared.liveAudioVisualizer
         if !enabled { didFail = false }
         let wanted = enabled && subscribers.count > 0 && !didFail
         if wanted, tap == nil {

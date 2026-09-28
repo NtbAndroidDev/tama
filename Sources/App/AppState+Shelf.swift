@@ -8,7 +8,7 @@ extension AppState {
 
     /// Opens the Widgets page with every widget in a grid to drag around.
     public func beginRearrangingWidgets() {
-        guard shelfEnabled else { return }
+        guard ShelfSettings.shared.isEnabled else { return }
         cancelHomeCustomization()
         open(.widgets)
         withAnimation(DS.Motion.fluid) {

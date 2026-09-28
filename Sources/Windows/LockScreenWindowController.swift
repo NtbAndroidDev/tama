@@ -53,19 +53,18 @@ public final class LockScreenWindowController {
 
     /// Called when a lock-screen setting changes.
     public func settingsChanged() {
-        let state = AppState.shared
         // Weather runs whenever it's switched on, not only while locked: the
         // Location prompt has to appear while the user can answer it, and the
         // first lock shouldn't wait on a network round trip.
-        if state.lockScreenEnabled && state.lockScreenShowsWeather && state.lockScreenShowsStatusRow {
+        if LockScreenSettings.shared.isEnabled && LockScreenSettings.shared.showsWeather && LockScreenSettings.shared.showsStatusRow {
             WeatherService.shared.start(for: "lockScreen")
         } else {
             WeatherService.shared.stop(for: "lockScreen")
         }
         if isLocked {
-            if state.lockScreenEnabled {
+            if LockScreenSettings.shared.isEnabled {
                 show(animated: false)
-                keepAwake.begin(minutes: state.lockScreenKeepAwake)
+                keepAwake.begin(minutes: LockScreenSettings.shared.keepAwake)
             } else {
                 hide(animated: false)
                 keepAwake.end()
@@ -76,18 +75,17 @@ public final class LockScreenWindowController {
     private func setLocked(_ locked: Bool) {
         guard locked != isLocked else { return }
         isLocked = locked
-        let state = AppState.shared
-        guard state.lockScreenEnabled else { return hide(animated: false) }
-        if state.lockScreenSounds {
-            LockSound.play(locked ? state.lockScreenLockSound : state.lockScreenUnlockSound, locking: locked)
+        guard LockScreenSettings.shared.isEnabled else { return hide(animated: false) }
+        if LockScreenSettings.shared.sounds {
+            LockSound.play(locked ? LockScreenSettings.shared.lockSound : LockScreenSettings.shared.unlockSound, locking: locked)
         }
         if locked {
             isScreensaverRunning = false
-            show(animated: state.lockScreenAnimation)
-            keepAwake.begin(minutes: state.lockScreenKeepAwake)
+            show(animated: LockScreenSettings.shared.animation)
+            keepAwake.begin(minutes: LockScreenSettings.shared.keepAwake)
         } else {
             keepAwake.end()
-            hide(animated: state.lockScreenAnimation)
+            hide(animated: LockScreenSettings.shared.animation)
         }
     }
 
@@ -95,8 +93,8 @@ public final class LockScreenWindowController {
     /// they step aside while it runs and come back when it stops.
     private func setScreensaver(_ running: Bool) {
         isScreensaverRunning = running
-        guard isLocked, AppState.shared.lockScreenEnabled else { return }
-        if running && !AppState.shared.lockScreenDuringScreensaver {
+        guard isLocked, LockScreenSettings.shared.isEnabled else { return }
+        if running && !LockScreenSettings.shared.duringScreensaver {
             hide(animated: false)
         } else {
             show(animated: false)
@@ -113,19 +111,18 @@ public final class LockScreenWindowController {
     }
 
     private func show(animated: Bool) {
-        let state = AppState.shared
-        if isScreensaverRunning && !state.lockScreenDuringScreensaver { return }
+        if isScreensaverRunning && !LockScreenSettings.shared.duringScreensaver { return }
         // The lock screen draws its clock and login on the main display.
         guard let screen = NSScreen.screens.first else { return }
         let frame = screen.frame
         if space == nil { space = SystemSpace() }
 
-        if state.lockScreenShowsHeadphones { HeadphoneBatteryService.shared.start(for: "lockScreen") }
+        if LockScreenSettings.shared.showsHeadphones { HeadphoneBatteryService.shared.start(for: "lockScreen") }
         WeatherService.shared.refresh()
 
         // Under the system clock, which sits about a fifth of the way down.
-        if state.lockScreenShowsStatusRow {
-            let rowHeight: CGFloat = LockScreenStatusRow.height(for: state.lockScreenWidgetStyle)
+        if LockScreenSettings.shared.showsStatusRow {
+            let rowHeight: CGFloat = LockScreenStatusRow.height(for: LockScreenSettings.shared.widgetStyle)
             let rowFrame = NSRect(x: frame.minX, y: frame.maxY - frame.height * 0.19 - rowHeight / 2,
                                   width: frame.width, height: rowHeight)
             rowPanel = place(rowPanel, frame: rowFrame, animated: animated) {
@@ -137,7 +134,7 @@ public final class LockScreenWindowController {
 
         // Clear of the user picture and password field at the bottom.
         var nextY = frame.minY + 150
-        if state.lockScreenShowsPlayer {
+        if LockScreenSettings.shared.showsPlayer {
             let size = LockScreenPlayer.size
             let playerFrame = NSRect(x: frame.midX - size.width / 2, y: nextY, width: size.width, height: size.height)
             playerPanel = place(playerPanel, frame: playerFrame, animated: animated) {
@@ -148,7 +145,7 @@ public final class LockScreenWindowController {
             remove(&playerPanel)
         }
 
-        if state.lockScreenVolumeSlider || state.lockScreenBrightnessSlider {
+        if LockScreenSettings.shared.volumeSlider || LockScreenSettings.shared.brightnessSlider {
             let size = LockScreenControls.size
             let controlsFrame = NSRect(x: frame.midX - size.width / 2, y: nextY, width: size.width, height: size.height)
             controlsPanel = place(controlsPanel, frame: controlsFrame, animated: animated) {

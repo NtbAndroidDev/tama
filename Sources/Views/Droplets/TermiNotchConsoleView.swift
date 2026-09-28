@@ -7,6 +7,7 @@ import AppKit
 
 struct TermiNotchConsoleView: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var termiNotchSettings = TermiNotchSettings.shared
     @ObservedObject private var sessions = TermiNotchSessions.shared
     @State private var isHovering = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -14,7 +15,7 @@ struct TermiNotchConsoleView: View {
     var body: some View {
         Group {
             if let session = sessions.active {
-                if state.termiNotchQuickBar {
+                if termiNotchSettings.quickBar {
                     TermiNotchQuickBar(session: session)
                 } else {
                     expanded(session)
@@ -35,7 +36,7 @@ struct TermiNotchConsoleView: View {
         // ↗ and ↻ beside the navigation bar, like the reference's TermiNotch.
         .shelfAccessories("termiNotch", [
             ShelfAccessory(id: "termiNotch.open", icon: "arrow.up.forward",
-                           help: "Open in \(state.termiNotchTerminalApp.title)",
+                           help: "Open in \(termiNotchSettings.terminalApp.title)",
                            page: .widgets, dropletID: "termiNotch") { TermiNotchSessions.shared.openInTerminalApp() },
             ShelfAccessory(id: "termiNotch.restart", icon: "arrow.clockwise", help: "Restart session",
                            page: .widgets, dropletID: "termiNotch") { TermiNotchSessions.shared.active?.restart() },
@@ -46,19 +47,19 @@ struct TermiNotchConsoleView: View {
             },
         ])
         .onAppear { applyHeight() }
-        .onChange(of: state.termiNotchQuickBar) { _, _ in applyHeight() }
+        .onChange(of: termiNotchSettings.quickBar) { _, _ in applyHeight() }
         .onDisappear { state.clearEditing(withPrefix: "droplet.terminotch") }
     }
 
     private func applyHeight() {
-        state.dropletConsoleHeight = state.termiNotchQuickBar
+        state.dropletConsoleHeight = termiNotchSettings.quickBar
             ? DroppyShelfMetrics.termiNotchBarHeight : DroppyShelfMetrics.termiNotchExpandedHeight
     }
 
     private func expanded(_ session: TerminalSession) -> some View {
         VStack(spacing: DS.Space.xs) {
             if sessions.sessions.count > 1 { tabStrip }
-            TerminalCanvas(session: session, fontSize: CGFloat(state.termiNotchFontSize),
+            TerminalCanvas(session: session, fontSize: CGFloat(termiNotchSettings.fontSize),
                            editingOwner: "droplet.terminotch.terminal")
                 .id(session.id)
                 .accessibilityLabel("Terminal, \(session.title)")
@@ -88,7 +89,7 @@ struct TermiNotchConsoleView: View {
             DroppyIconButton("plus", size: 22, help: "New tab (⌘T)") { TermiNotchSessions.shared.newTab() }
             DroppyIconButton("clear", size: 22, help: "Clear terminal output (⌘K)") { session.clear() }
             DroppyIconButton("rectangle.compress.vertical", size: 22, help: "Quick command bar") {
-                withAnimation(DS.Motion.respecting(reduceMotion, DS.Motion.fluid)) { state.termiNotchQuickBar = true }
+                withAnimation(DS.Motion.respecting(reduceMotion, DS.Motion.fluid)) { termiNotchSettings.quickBar = true }
             }
         }
         .padding(DS.Space.xs)
@@ -139,6 +140,7 @@ private struct TermiNotchTab: View {
 private struct TermiNotchQuickBar: View {
     @ObservedObject var session: TerminalSession
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var termiNotchSettings = TermiNotchSettings.shared
     @State private var command = ""
     @FocusState private var focused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -178,7 +180,7 @@ private struct TermiNotchQuickBar: View {
                     DroppyIconButton("stop.fill", size: 22, help: "Send Ctrl-C") { session.interrupt() }
                 }
                 DroppyIconButton("rectangle.expand.vertical", size: 22, help: "Expanded terminal") {
-                    withAnimation(DS.Motion.respecting(reduceMotion, DS.Motion.fluid)) { state.termiNotchQuickBar = false }
+                    withAnimation(DS.Motion.respecting(reduceMotion, DS.Motion.fluid)) { termiNotchSettings.quickBar = false }
                 }
             }
             .padding(.horizontal, DS.Space.sm)

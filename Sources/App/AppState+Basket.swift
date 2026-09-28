@@ -107,7 +107,7 @@ extension AppState {
     func basketVisibilityChanged() {
         if isBasketVisible {
             ensureBasket()
-            if basketMode == .single {
+            if BasketSettings.shared.mode == .single {
                 mergeBasketsIntoFirst()
                 if let first = baskets.indices.first, !baskets[first].isOpen { baskets[first].isOpen = true }
             } else if !baskets.contains(where: \.isOpen), let first = baskets.indices.first {
@@ -161,7 +161,7 @@ extension AppState {
         guard let index = baskets.firstIndex(where: { $0.id == id }) else { return }
         // Its view is going away; it can no longer clear its own modal slot.
         clearModals(withPrefix: "basket.\(id.uuidString)")
-        if basketMode == .single {
+        if BasketSettings.shared.mode == .single {
             isBasketVisible = false
             return
         }
@@ -196,7 +196,7 @@ extension AppState {
         let unique = items.filter { seen.insert($0.url.standardizedFileURL).inserted }
         let kept = keepingTemporaryFiles(unique).map { item -> ShelfItem in
             var item = item
-            item.stack = basketSecondBucket ? bucket : 0
+            item.stack = BasketSettings.shared.secondBucket ? bucket : 0
             return item
         }
         let incoming = Set(kept.map(\.url.standardizedFileURL))
@@ -205,7 +205,7 @@ extension AppState {
             baskets[index].items.insert(contentsOf: kept, at: 0)
         }
         measureFolderSizes(of: kept)
-        if hapticFeedback, !kept.isEmpty {
+        if GeneralSettings.shared.hapticFeedback, !kept.isEmpty {
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
         }
         return kept

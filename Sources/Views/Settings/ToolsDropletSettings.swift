@@ -55,7 +55,7 @@ struct FormShortcutRow: View {
 // MARK: - Element Capture
 
 struct ElementCaptureDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var captureSettings = CaptureSettings.shared
 
     var body: some View {
         Section {
@@ -73,10 +73,9 @@ struct ElementCaptureDropletSettings: View {
 
         Section {
             ToggleTiles([
-                ToggleTile("Clipboard", icon: "doc.on.clipboard", isOn: $state.captureToClipboard),
-                ToggleTile("Tray", icon: "tray.and.arrow.down", isOn: $state.captureToTray),
-                ToggleTile("Folder", icon: "folder", isOn: $state.captureToFolder),
-                ToggleTile("Editor", icon: "pencil.tip.crop.circle", isOn: $state.captureOpensEditor),
+                ToggleTile("Clipboard", icon: "doc.on.clipboard", isOn: $captureSettings.toClipboard),
+                ToggleTile("Tray", icon: "tray.and.arrow.down", isOn: $captureSettings.toTray),
+                ToggleTile("Folder", icon: "folder", isOn: $captureSettings.toFolder),
             ], anchor: "droplet.snipper.destinations")
             .padding(.horizontal, -14)
             LabeledContent {
@@ -87,9 +86,9 @@ struct ElementCaptureDropletSettings: View {
                         .truncationMode(.middle)
                         .foregroundStyle(.secondary)
                     Button("Choose…", action: chooseFolder)
-                    if !state.captureFolderPath.isEmpty {
+                    if !captureSettings.folderPath.isEmpty {
                         Button {
-                            state.captureFolderPath = ""
+                            captureSettings.folderPath = ""
                         } label: {
                             Image(systemName: "arrow.counterclockwise")
                         }
@@ -108,7 +107,7 @@ struct ElementCaptureDropletSettings: View {
             .settingsAnchor("droplet.snipper.folder")
             InfoToggle("Open editor instantly",
                        info: "Every capture opens in the screenshot editor first; Done then sends it to the other destinations.",
-                       isOn: $state.captureOpensEditor)
+                       isOn: $captureSettings.opensEditor)
                 .settingsAnchor("droplet.snipper.editor")
         } header: {
             Text("Capture destinations")
@@ -120,22 +119,22 @@ struct ElementCaptureDropletSettings: View {
         Section {
             InfoToggle("Screenshot preview",
                        info: "A card in the corner with quick actions — edit, copy, save, read text and pin — for a few seconds after each capture.",
-                       isOn: $state.showCapturePreview)
+                       isOn: $captureSettings.showsPreview)
                 .settingsAnchor("droplet.snipper.preview")
             InfoToggle("Auto-compress screenshots",
                        info: "Saves Retina captures at point resolution and runs them through Tama's image compressor, keeping the smaller file.",
-                       isOn: $state.captureAutoCompress)
+                       isOn: $captureSettings.autoCompress)
                 .settingsAnchor("droplet.snipper.compress")
             InfoToggle("Leave Tama out of captures",
                        info: "The island, shelf, preview and other Tama windows don't appear in Tama's own captures. (Accessibility › Hide from screenshots hides them from every app's screenshots and screen sharing.)",
-                       isOn: $state.captureExcludesDroppy)
+                       isOn: $captureSettings.excludesDroppy)
                 .settingsAnchor("droplet.snipper.exclude")
         } header: {
             Text("Capture")
         }
 
         Section {
-            Picker(selection: $state.captureEditorDefaultZoom) {
+            Picker(selection: $captureSettings.editorDefaultZoom) {
                 ForEach(CaptureEditorZoomDefault.allCases) { Text($0.title).tag($0) }
             } label: {
                 HStack(spacing: 6) {
@@ -144,7 +143,7 @@ struct ElementCaptureDropletSettings: View {
                 }
             }
             .settingsAnchor("droplet.snipper.zoom")
-            Picker(selection: $state.captureAnnotationColor) {
+            Picker(selection: $captureSettings.annotationColor) {
                 ForEach(Array(RGBAColor.swatchNames.enumerated()), id: \.offset) { index, name in
                     Label {
                         Text(name.capitalized)
@@ -157,17 +156,17 @@ struct ElementCaptureDropletSettings: View {
                 Text("Default annotation color")
             }
             .settingsAnchor("droplet.snipper.color")
-            Picker("Text font", selection: $state.captureEditorFont) {
+            Picker("Text font", selection: $captureSettings.editorFont) {
                 ForEach(CaptureFont.allCases.filter(\.isInstalled)) { Text($0.title).tag($0.rawValue) }
             }
             .settingsAnchor("droplet.snipper.font")
             LabeledContent {
                 HStack {
-                    Slider(value: $state.screenshotRadius, in: 0...40, step: 1)
+                    Slider(value: $captureSettings.screenshotRadius, in: 0...40, step: 1)
                         .frame(width: 160)
                         .accessibilityLabel("Screenshot radius")
-                        .accessibilityValue("\(Int(state.screenshotRadius)) points")
-                    Text("\(Int(state.screenshotRadius)) pt")
+                        .accessibilityValue("\(Int(captureSettings.screenshotRadius)) points")
+                    Text("\(Int(captureSettings.screenshotRadius)) pt")
                         .monospacedDigit()
                         .frame(width: 44, alignment: .trailing)
                 }
@@ -178,7 +177,7 @@ struct ElementCaptureDropletSettings: View {
                 }
             }
             .settingsAnchor("droplet.snipper.radius")
-            .onChange(of: state.screenshotRadius) { _, radius in CaptureEditorModel.applyDefaultRadius(radius) }
+            .onChange(of: captureSettings.screenshotRadius) { _, radius in CaptureEditorModel.applyDefaultRadius(radius) }
             DisclosureGroup("Editor shortcuts") {
                 EditorShortcutsSheet()
                     .padding(-16)
@@ -199,20 +198,20 @@ struct ElementCaptureDropletSettings: View {
         panel.prompt = "Choose"
         panel.directoryURL = ScreenCaptureService.folderURL
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        state.captureFolderPath = url.path(percentEncoded: false)
+        captureSettings.folderPath = url.path(percentEncoded: false)
     }
 }
 
 // MARK: - OCR
 
 struct OCRDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var traySettings = TraySettings.shared
 
     var body: some View {
         Section {
             InfoToggle("OCR auto-copy",
                        info: "Text read from a capture, the screenshot preview, a Tray file or the OCR droplet goes straight to the clipboard. Off, a banner offers Copy instead.",
-                       isOn: $state.autoCopyOCRText)
+                       isOn: $traySettings.autoCopyOCRText)
                 .settingsAnchor("droplet.ocr.autoCopy")
         } header: {
             Text("OCR")
@@ -223,13 +222,13 @@ struct OCRDropletSettings: View {
 // MARK: - Window Snap
 
 struct WindowSnapDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var captureSettings = CaptureSettings.shared
 
     var body: some View {
         Section {
             InfoToggle("Show snap preview",
                        info: "When a shortcut snaps a window, a translucent blue zone flashes where it lands.",
-                       isOn: $state.windowSnapShowPreview)
+                       isOn: $captureSettings.windowSnapShowPreview)
                 .settingsAnchor("droplet.windowSnapper.preview")
         } header: {
             Text("Window Snap")
@@ -259,6 +258,10 @@ struct LiquidMouseDropletSettings: View {
     @AppStorage(LiquidMouseService.Keys.liquidMode) private var liquidMode = false
     @AppStorage(LiquidMouseService.Keys.glide) private var glide = 0.35
     @AppStorage("liquidMouseSettingsAxis") private var axis: ScrollAxis = .vertical
+    // Read here, not only in `AxisSettings`, so flipping Reverse redraws the
+    // permission warning below.
+    @AppStorage(LiquidMouseService.Keys.reverse(.vertical)) private var reverseVertical = false
+    @AppStorage(LiquidMouseService.Keys.reverse(.horizontal)) private var reverseHorizontal = false
     private let refresh = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -303,10 +306,10 @@ struct LiquidMouseDropletSettings: View {
                 Text("Turn on Smooth scrolling to use Liquid Mode, glide, speed and curves.")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            if (smooth || reverseBinding(.vertical).wrappedValue || reverseBinding(.horizontal).wrappedValue) && !liquid.hasPermission {
+            if (smooth || reverseVertical || reverseHorizontal) && !liquid.hasPermission {
                 HStack {
                     Text("Needs \(PermissionService.accessibilityName) to change scroll events.")
-                        .font(.caption).foregroundStyle(.orange)
+                        .font(.caption).foregroundStyle(DS.Palette.warning)
                     Spacer()
                     Button("Allow") { liquid.requestPermission() }
                 }
@@ -340,11 +343,6 @@ struct LiquidMouseDropletSettings: View {
 
     private var glideTitle: String {
         glide < 0.28 ? "Short" : (glide < 0.5 ? "Medium" : "Long")
-    }
-
-    private func reverseBinding(_ axis: ScrollAxis) -> Binding<Bool> {
-        Binding(get: { UserDefaults.standard.bool(forKey: LiquidMouseService.Keys.reverse(axis)) },
-                set: { UserDefaults.standard.set($0, forKey: LiquidMouseService.Keys.reverse(axis)) })
     }
 }
 

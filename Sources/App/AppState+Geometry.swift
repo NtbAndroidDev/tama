@@ -23,11 +23,11 @@ extension AppState {
     /// small margin, or a row for the page tabs in "Regular buttons" style.
     public var shelfTopInset: CGFloat {
         if notchHeight > 0 { return notchHeight + 4 }
-        return shelfNavigationStyle == .regularButtons ? DroppyShelfMetrics.wingTabRow : DS.Space.lg
+        return ShelfSettings.shared.navigationStyle == .regularButtons ? DroppyShelfMetrics.wingTabRow : DS.Space.lg
     }
 
     /// Settings › Shelf › Regular | Enlarged.
-    public var shelfScale: CGFloat { shelfSize.scale }
+    public var shelfScale: CGFloat { ShelfSettings.shared.size.scale }
 
     /// Whether the island is allowed to close itself right now.
     public var canAutoCollapse: Bool {
@@ -46,7 +46,7 @@ extension AppState {
     public func islandTopOffset(on displayID: CGDirectDisplayID?) -> CGFloat {
         let hasNotch = notchHeight(on: displayID) > 0
         // Settings › Theming › Media HUD position nudges the floating pill.
-        return (islandStyle == .floatingPill && !hasNotch) ? max(0, 8 + mediaHUDVerticalOffset) : 0
+        return (GeneralSettings.shared.islandStyle == .floatingPill && !hasNotch) ? max(0, 8 + DisplaySettings.shared.mediaHUDVerticalOffset) : 0
     }
 
     public var hardwareNotchWidth: CGFloat { hardwareNotchWidth(on: nil) }
@@ -68,7 +68,7 @@ extension AppState {
     /// timer with its mic meter).
     public func showsWideActivity(on displayID: CGDirectDisplayID?) -> Bool {
         guard let urgent = LiveActivityCenter.shared.top(.urgent), urgent.isWide else { return false }
-        return !(compactHUDPriority == .mediaFirst && mediaService.currentTrack.hasTrack && showsMedia(on: displayID))
+        return !(HUDSettings.shared.compactHUDPriority == .mediaFirst && mediaService.currentTrack.hasTrack && showsMedia(on: displayID))
     }
 
     public func hasMiniActivity(on displayID: CGDirectDisplayID?) -> Bool {
@@ -80,18 +80,18 @@ extension AppState {
 
     /// The floating pill's height on screens without a notch (Island height).
     public var pillHeight: CGFloat {
-        DroppyShelfMetrics.pillHeight + CGFloat(DroppyShelfMetrics.islandHeightRange.clamp(islandHeightOffset))
+        DroppyShelfMetrics.pillHeight + CGFloat(DroppyShelfMetrics.islandHeightRange.clamp(DisplaySettings.shared.islandHeightOffset))
     }
 
     /// Extra width of the floating pill, resting or with a HUD (Island width).
     public var pillWidthOffset: CGFloat {
-        CGFloat(DroppyShelfMetrics.islandWidthRange.clamp(islandWidthOffset))
+        CGFloat(DroppyShelfMetrics.islandWidthRange.clamp(DisplaySettings.shared.islandWidthOffset))
     }
 
     /// Each wing of a level HUD: on a notched display Notch width tunes it.
     public func hudWing(on displayID: CGDirectDisplayID?) -> CGFloat {
         guard notchHeight(on: displayID) > 0 else { return DroppyShelfMetrics.hudWing }
-        return DroppyShelfMetrics.hudWing + CGFloat(DroppyShelfMetrics.notchWidthRange.clamp(notchHUDWidthOffset)) / 2
+        return DroppyShelfMetrics.hudWing + CGFloat(DroppyShelfMetrics.notchWidthRange.clamp(DisplaySettings.shared.notchHUDWidthOffset)) / 2
     }
 
     /// The wing the resting notch grows on each side. The physical notch is a
@@ -145,7 +145,7 @@ extension AppState {
             return CGSize(width: DroppyShelfMetrics.hudPillBody + pillWidthOffset + wings, height: pillHeight)
         }
         // Notch height tunes how far the HUD reaches below the hardware notch.
-        let height = max(notchHeight + CGFloat(DroppyShelfMetrics.notchHeightRange.clamp(notchHUDHeightOffset)),
+        let height = max(notchHeight + CGFloat(DroppyShelfMetrics.notchHeightRange.clamp(DisplaySettings.shared.notchHUDHeightOffset)),
                          DroppyShelfMetrics.minimumHUDHeight)
         return CGSize(width: hardwareNotchWidth(on: displayID) + wings, height: height)
     }
@@ -204,7 +204,7 @@ extension AppState {
         let mode = islandMode
         guard displayID != nil, mode.isOpen || mode == .hud else { return mode }
         // Settings › HUDs › Collapsed HUD scope › All displays: every island shows it.
-        if mode == .hud, collapsedHUDScope == .allDisplays { return .hud }
+        if mode == .hud, HUDSettings.shared.collapsedHUDScope == .allDisplays { return .hud }
         return IslandMode.resolve(isDragHovering: false, isExpanded: false,
                                   hasNotification: activeNotification != nil, hasHUD: false)
     }
@@ -236,8 +236,8 @@ extension AppState {
         }
 
         let earRadius: CGFloat
-        if notchHeight > 0 || islandStyle == .notchAttached {
-            earRadius = mode.isOpen ? notchEarFilletRadius : DroppyShelfMetrics.restingEar
+        if notchHeight > 0 || GeneralSettings.shared.islandStyle == .notchAttached {
+            earRadius = mode.isOpen ? ThemeSettings.shared.notchEarFilletRadius : DroppyShelfMetrics.restingEar
         } else {
             earRadius = 0
         }
@@ -254,14 +254,14 @@ extension AppState {
 
     /// Settings › Shelf › Favorites, decoded.
     public var shelfFavorites: [ShelfFavorite] {
-        get { ShelfFavorite.decode(shelfFavoritesStorage) }
-        set { shelfFavoritesStorage = ShelfFavorite.encode(newValue) }
+        get { ShelfFavorite.decode(ShelfSettings.shared.favoritesStorage) }
+        set { ShelfSettings.shared.favoritesStorage = ShelfFavorite.encode(newValue) }
     }
 
     /// The floating Calendar button: only with the floating bar, which has no
     /// Calendar segment ("Regular buttons" puts Calendar in the right wing).
     public var showsCalendarFloatingButton: Bool {
-        shelfNavigationStyle == .floatingBar && showCalendarButton
+        ShelfSettings.shared.navigationStyle == .floatingBar && ShelfSettings.shared.showCalendarButton
     }
 
     /// How many round glass buttons sit beside (or, without the bar, make up)
@@ -272,7 +272,7 @@ extension AppState {
 
     /// Size of the navigation row floating under the open shelf.
     public var lanePillSize: CGSize {
-        let bar = shelfNavigationStyle == .floatingBar ? 1 : 0
+        let bar = ShelfSettings.shared.navigationStyle == .floatingBar ? 1 : 0
         let buttons = floatingButtonCount
         let items = bar + buttons
         let width = CGFloat(bar) * DroppyShelfMetrics.navBarWidth

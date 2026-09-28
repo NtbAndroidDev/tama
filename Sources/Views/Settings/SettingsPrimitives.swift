@@ -236,7 +236,20 @@ extension View {
     /// same way everywhere, so an unavailable option reads as unavailable.
     /// Say why in the row's subtitle or a `SettingsNote`.
     func settingsDisabled(_ isDisabled: Bool) -> some View {
-        disabled(isDisabled).opacity(isDisabled ? 0.45 : 1)
+        modifier(SettingsDisabledModifier(isDisabled: isDisabled))
+    }
+}
+
+/// Dims only when nothing above has: a row inside an already-disabled group
+/// stays at the group's 0.45 instead of fading to 0.2.
+private struct SettingsDisabledModifier: ViewModifier {
+    let isDisabled: Bool
+    @Environment(\.isEnabled) private var isAncestorEnabled
+
+    func body(content: Content) -> some View {
+        content
+            .disabled(isDisabled)
+            .opacity(isDisabled && isAncestorEnabled ? 0.45 : 1)
     }
 }
 
@@ -580,13 +593,16 @@ struct SettingsSlider: View {
     var defaultValue: Double?
     var help: String?
     var anchor: String?
+    /// A line under the slider, e.g. why it's unavailable.
+    var subtitle: String?
     let format: (Double) -> String
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(_ title: String, value: Binding<Double>, in range: ClosedRange<Double>, step: Double? = nil,
-         defaultValue: Double? = nil, help: String? = nil, anchor: String? = nil,
+         defaultValue: Double? = nil, help: String? = nil, anchor: String? = nil, subtitle: String? = nil,
          format: @escaping (Double) -> String) {
         self.title = title
+        self.subtitle = subtitle
         self._value = value
         self.range = range
         self.step = step
@@ -597,6 +613,18 @@ struct SettingsSlider: View {
     }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            control
+            if let subtitle {
+                Text(subtitle).font(SettingsStyle.rowSubtitle).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(SettingsStyle.rowPadding)
+        .settingsAnchor(anchor)
+    }
+
+    private var control: some View {
         HStack(spacing: 12) {
             HStack(spacing: 6) {
                 Text(title).font(SettingsStyle.rowTitle).lineLimit(1)
@@ -635,8 +663,6 @@ struct SettingsSlider: View {
                 .accessibilityLabel("Reset \(title)")
             }
         }
-        .padding(SettingsStyle.rowPadding)
-        .settingsAnchor(anchor)
     }
 }
 

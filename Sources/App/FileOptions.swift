@@ -3,7 +3,7 @@ import AppKit
 
 // Settings for files: the Shelf's clean-up, the Basket, Quick Actions,
 // conversion, compression, Smart Export and background removal. The stored
-// values are @AppStorage properties in AppState's class body.
+// values are @AppStorage properties in the settings stores (App/Settings).
 
 /// Settings › Shelf › Auto-cleanup: how long unpinned Shelf files stay.
 public enum TrayExpiry: String, CaseIterable, Identifiable, Sendable {

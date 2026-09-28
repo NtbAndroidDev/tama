@@ -15,6 +15,9 @@ import UniformTypeIdentifiers
 /// notch instead of zooming from its centre.
 public struct DynamicIslandView: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var clipboardSettings = ClipboardSettings.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The HUD and banner keep their last value while they animate out.
     @State private var lastHUD: IslandHUD?
@@ -120,11 +123,11 @@ public struct DynamicIslandView: View {
             .frame(width: outline.size.width, height: outline.size.height, alignment: .top)
             .liquidGlass(
                 cornerRadius: outline.cornerRadius,
-                showBorder: state.islandStyle == .floatingPill,
+                showBorder: generalSettings.islandStyle == .floatingPill,
                 // On a notch only the open shelf glows; the resting notch stays
                 // pure black so it reads as the hardware.
                 isHovered: isLive && state.isIslandHovered && (notchHeight == 0 || mode == .shelf),
-                isNotchAttached: state.islandStyle == .notchAttached && notchHeight > 0,
+                isNotchAttached: generalSettings.islandStyle == .notchAttached && notchHeight > 0,
                 earRadius: outline.earRadius,
                 solidTop: notchHeight,
                 isResting: mode == .resting
@@ -222,11 +225,11 @@ private struct IslandDropDelegate: DropDelegate {
 
     func validateDrop(info: DropInfo) -> Bool {
         // Settings › Shelf › The Shelf is off: no drop tiles either.
-        state.shelfEnabled && !isTrayTileOverTray && info.hasItemsConforming(to: DragDropService.acceptedTypes)
+        ShelfSettings.shared.isEnabled && !isTrayTileOverTray && info.hasItemsConforming(to: DragDropService.acceptedTypes)
     }
 
     func dropEntered(info: DropInfo) {
-        guard state.shelfEnabled, !dropsStraightIntoTray else { return }
+        guard ShelfSettings.shared.isEnabled, !dropsStraightIntoTray else { return }
         DroppyAudio.playTick()
         withAnimation(DS.Motion.respecting(DS.Motion.reduceMotion, DS.Motion.morphOpen)) { state.isDragHovering = true }
         updateHover(info)
@@ -245,7 +248,7 @@ private struct IslandDropDelegate: DropDelegate {
     }
 
     func performDrop(info: DropInfo) -> Bool {
-        guard state.shelfEnabled, !isTrayTileOverTray else { return false }
+        guard ShelfSettings.shared.isEnabled, !isTrayTileOverTray else { return false }
         let action = dropsStraightIntoTray ? .keep : (state.hoveredQuickAction ?? .keep)
         withAnimation(DS.Motion.respecting(DS.Motion.reduceMotion, DS.Motion.morphClose)) {
             state.isDragHovering = false
@@ -284,7 +287,7 @@ private struct IslandDropDelegate: DropDelegate {
         guard !items.isEmpty else { return }
         // Settings › Shelf › Open tray after drop; off, the wings' count shows it.
         QuickActionRunner.perform(action, items: items,
-                                  from: .island(openTray: state.openTrayAfterDrop || dropsStraightIntoTray))
+                                  from: .island(openTray: ShelfSettings.shared.openTrayAfterDrop || dropsStraightIntoTray))
     }
 }
 
@@ -298,6 +301,9 @@ private struct IslandContextMenu: View {
     // High Alert isn't observed here: AppState forwards its on/off flips, and
     // the service's once-a-second countdown would redraw this whole view.
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var clipboardSettings = ClipboardSettings.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
 
     var body: some View {
         Button {
@@ -325,16 +331,16 @@ private struct IslandContextMenu: View {
             Button { state.beginCustomizingHome() } label: {
                 Label("Customize Home…", systemImage: "square.grid.2x2")
             }
-            .disabled(state.isCustomizingHome || !state.shelfEnabled)
+            .disabled(state.isCustomizingHome || !shelfSettings.isEnabled)
             Button { state.beginRearrangingWidgets() } label: {
                 Label("Rearrange Widgets…", systemImage: "hand.draw")
             }
-            .disabled(!state.shelfEnabled)
+            .disabled(!shelfSettings.isEnabled)
         } label: {
             Label("Pages", systemImage: "square.grid.2x2")
         }
         // Settings › Clipboard › Clipboard locations › Shelf right-click menu.
-        if state.clipboardEnabled && state.clipboardInShelfMenu {
+        if clipboardSettings.isEnabled && clipboardSettings.inShelfMenu {
             Button { state.toggleClipboard() } label: {
                 Label("Open Clipboard\(keys(.toggleClipboard))", systemImage: "doc.on.clipboard")
             }
@@ -376,9 +382,9 @@ private struct IslandContextMenu: View {
 
         Divider()
 
-        if state.rightClickToHide {
+        if generalSettings.rightClickToHide {
             Button { IslandVisibilityService.shared.hide() } label: {
-                Label(state.islandStyle == .notchAttached && state.notchHeight > 0 ? "Hide Notch" : "Hide Island",
+                Label(generalSettings.islandStyle == .notchAttached && state.notchHeight > 0 ? "Hide Notch" : "Hide Island",
                       systemImage: "eye.slash")
             }
         }

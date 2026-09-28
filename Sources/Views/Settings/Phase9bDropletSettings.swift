@@ -7,7 +7,7 @@ import SwiftUI
 // MARK: - Voice Transcribe
 
 struct VoiceTranscribeDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var voiceSettings = VoiceSettings.shared
 
     var body: some View {
         Section {
@@ -16,11 +16,11 @@ struct VoiceTranscribeDropletSettings: View {
                             anchor: "droplet.voiceTranscribe.quickRecord")
             InfoToggle("External recorder",
                        info: "Use the floating panel instead of inline expansion: Quick Record opens a small recorder window you can drag anywhere, and it stays up while recording.",
-                       isOn: $state.voiceFloatingRecorder)
+                       isOn: $voiceSettings.floatingRecorder)
                 .settingsAnchor("droplet.voiceTranscribe.floating")
             InfoToggle("Show recording icon in menu bar",
                        info: "A red mic with the elapsed time sits in the menu bar while recording; click it to stop. It also appears whenever the island is hidden, so a recording is never invisible.",
-                       isOn: $state.voiceMenuBarIcon)
+                       isOn: $voiceSettings.menuBarIcon)
                 .settingsAnchor("droplet.voiceTranscribe.menuBar")
         } header: {
             Text("Recording")
@@ -30,22 +30,22 @@ struct VoiceTranscribeDropletSettings: View {
         }
 
         Section {
-            Picker(selection: $state.voiceEngine) {
+            Picker(selection: $voiceSettings.engine) {
                 ForEach(VoiceEngine.allCases) { Text($0.title).tag($0) }
             } label: {
                 HStack(spacing: 6) {
                     Text("Engine")
-                    InfoButton(state.voiceEngine.detail)
+                    InfoButton(voiceSettings.engine.detail)
                 }
             }
             .settingsAnchor("droplet.voiceTranscribe.engine")
             InfoToggle("Live transcription",
                        info: "Show the words while you talk. Off, the whole recording is transcribed after Stop, with a progress percentage — usually a little more accurate.",
-                       isOn: $state.voiceLiveTranscription)
+                       isOn: $voiceSettings.liveTranscription)
                 .settingsAnchor("droplet.voiceTranscribe.live")
             InfoToggle("Skip result window and copy transcription instantly",
                        info: "When the text is ready it goes straight to the clipboard, with a banner, instead of the Transcription card.",
-                       isOn: $state.voiceSkipResult)
+                       isOn: $voiceSettings.skipResult)
                 .settingsAnchor("droplet.voiceTranscribe.skipResult")
         } header: {
             Text("Transcription")
@@ -55,19 +55,19 @@ struct VoiceTranscribeDropletSettings: View {
         }
 
         Section {
-            Picker(selection: $state.voiceRetention) {
+            Picker(selection: $voiceSettings.retention) {
                 ForEach(VoiceRetention.allCases) { Text($0.title).tag($0) }
             } label: {
                 HStack(spacing: 6) {
                     Text("Recordings")
-                    InfoButton(state.voiceRetention.detail)
+                    InfoButton(voiceSettings.retention.detail)
                 }
             }
             .settingsAnchor("droplet.voiceTranscribe.retention")
         } header: {
             Text("Storage")
         } footer: {
-            Text(state.voiceRetention.detail + " Saved recordings can be transcribed again from their row or right-click menu.")
+            Text(voiceSettings.retention.detail + " Saved recordings can be transcribed again from their row or right-click menu.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -76,7 +76,7 @@ struct VoiceTranscribeDropletSettings: View {
 // MARK: - Thunderstorm
 
 struct ThunderstormDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var thunderstormSettings = ThunderstormSettings.shared
 
     var body: some View {
         Section {
@@ -96,15 +96,15 @@ struct ThunderstormDropletSettings: View {
         Section {
             InfoToggle("System commands",
                        info: "Lock Screen, Sleep, Restart, Shut Down, Log Out, Eject All Disks and Quit All Apps. The ones that close things ask for a second Return.",
-                       isOn: $state.thunderstormSystemCommands)
+                       isOn: $thunderstormSettings.systemCommands)
                 .settingsAnchor("droplet.thunderstorm.commands")
             InfoToggle("Web search",
                        info: "Google Search, DuckDuckGo and Wikipedia rows under the results; they open in your browser.",
-                       isOn: $state.thunderstormWebSearch)
+                       isOn: $thunderstormSettings.webSearch)
                 .settingsAnchor("droplet.thunderstorm.web")
             InfoToggle("Inline web answers",
                        info: "Looks up an inline answer from DuckDuckGo's free Instant Answer API as you type, which sends what you type to DuckDuckGo. Off, a \u{201C}Look Up an Inline Answer\u{201D} row asks only when you pick it.",
-                       isOn: $state.thunderstormInlineAnswers)
+                       isOn: $thunderstormSettings.inlineAnswers)
                 .settingsAnchor("droplet.thunderstorm.answers")
         } header: {
             Text("Results")
@@ -115,7 +115,7 @@ struct ThunderstormDropletSettings: View {
 // MARK: - Menu Bar Manager
 
 struct MenuBarManagerDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var menuBarSettings = MenuBarSettings.shared
     @ObservedObject private var manager = MenuBarManagerService.shared
     @State private var confirmsReset = false
 
@@ -148,20 +148,20 @@ struct MenuBarManagerDropletSettings: View {
         Section {
             InfoToggle("Always-hidden section",
                        info: "A second, dotted divider further left. Icons dragged left of it stay hidden even when the hidden section is shown; Option-click the toggle to see them.",
-                       isOn: $state.menuBarAlwaysHidden)
+                       isOn: $menuBarSettings.alwaysHidden)
                 .settingsAnchor("droplet.menuBar.alwaysHidden")
             InfoToggle("Rehide automatically",
                        info: "Fold the icons away again after a delay. It waits while the pointer is up in the menu bar.",
-                       isOn: $state.menuBarAutoRehide)
+                       isOn: $menuBarSettings.autoRehide)
                 .settingsAnchor("droplet.menuBar.rehide")
-            if state.menuBarAutoRehide {
+            if menuBarSettings.autoRehide {
                 LabeledContent("Rehide after") {
-                    Stepper("\(Int(state.menuBarRehideDelay)) s", value: $state.menuBarRehideDelay, in: 2...120, step: 1)
+                    Stepper("\(Int(menuBarSettings.rehideDelay)) s", value: $menuBarSettings.rehideDelay, in: 2...120, step: 1)
                 }
             }
             InfoToggle("Rehide when switching apps",
                        info: "Fold the icons away as soon as you switch to another app.",
-                       isOn: $state.menuBarRehideOnAppSwitch)
+                       isOn: $menuBarSettings.rehideOnAppSwitch)
                 .settingsAnchor("droplet.menuBar.appSwitch")
         } header: {
             Text("Behavior")
@@ -171,7 +171,7 @@ struct MenuBarManagerDropletSettings: View {
         }
 
         Section {
-            Picker("Toggle icon", selection: $state.menuBarToggleIcon) {
+            Picker("Toggle icon", selection: $menuBarSettings.toggleIcon) {
                 ForEach(MenuBarToggleIcon.allCases) { icon in
                     Label(icon.title, systemImage: icon.symbol(revealed: false)).tag(icon)
                 }
@@ -179,11 +179,12 @@ struct MenuBarManagerDropletSettings: View {
             .settingsAnchor("droplet.menuBar.icon")
             InfoToggle("Render icon as a template",
                        info: "Template icons follow the menu bar's light or dark look; off, the toggle uses your highlight color.",
-                       isOn: $state.menuBarIconTemplate)
+                       isOn: $menuBarSettings.iconTemplate)
                 .settingsAnchor("droplet.menuBar.template")
             InfoToggle("Show section dividers",
                        info: "While the icons are shown, thin dividers mark where each hidden section starts. Keep this on to rearrange them.",
-                       isOn: $state.menuBarShowDividers)
+                       isOn: $menuBarSettings.showDividers)
+                .settingsAnchor("droplet.menuBar.dividers")
             LabeledContent("Layout") {
                 Button("Reset Layout…") { confirmsReset = true }
                     .disabled(!manager.isRunning)

@@ -356,7 +356,7 @@ public enum FileOperations {
 @MainActor
 enum SmartExport {
     static var baseFolder: URL {
-        let custom = AppState.shared.smartExportFolder
+        let custom = FileActionSettings.shared.smartExportFolder
         if !custom.isEmpty { return URL(fileURLWithPath: custom, isDirectory: true) }
         return FileOperations.downloadsFolder.appendingPathComponent("Tama", isDirectory: true)
     }
@@ -364,13 +364,12 @@ enum SmartExport {
     /// The folder for this kind, created on demand, or nil when Smart Export
     /// (or this kind) is off.
     static func folder(for kind: SmartExportKind) -> URL? {
-        let state = AppState.shared
-        guard state.smartExportEnabled else { return nil }
+        guard FileActionSettings.shared.smartExportEnabled else { return nil }
         let on: Bool
         switch kind {
-        case .compressed: on = state.smartExportCompressed
-        case .converted: on = state.smartExportConverted
-        case .cutouts: on = state.smartExportCutouts
+        case .compressed: on = FileActionSettings.shared.smartExportCompressed
+        case .converted: on = FileActionSettings.shared.smartExportConverted
+        case .cutouts: on = FileActionSettings.shared.smartExportCutouts
         }
         guard on else { return nil }
         let folder = baseFolder.appendingPathComponent(kind.folderName, isDirectory: true)

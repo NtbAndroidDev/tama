@@ -198,13 +198,13 @@ final class LocalSendService: ObservableObject {
     /// The name or visibility changed: tell the network.
     func settingsChanged() {
         guard receiverState == .running else { return }
-        if AppState.shared.localSendVisible { announce() }
+        if LocalSendSettings.shared.isVisible { announce() }
     }
 
     private func startReceiver() async {
         guard isEnabled, server == nil else { return }
         receiverState = .starting
-        let encrypted = AppState.shared.localSendEncrypted
+        let encrypted = LocalSendSettings.shared.isEncrypted
         if encrypted {
             do {
                 let made = try await Task.detached(priority: .userInitiated) { try LocalSendTLS.loadOrCreate() }.value
@@ -254,7 +254,7 @@ final class LocalSendService: ObservableObject {
                 guard !PowerStateService.shared.isDormant else { return }
                 let service = LocalSendService.shared
                 service.prunePeers()
-                if AppState.shared.localSendVisible { service.announce() }
+                if LocalSendSettings.shared.isVisible { service.announce() }
             }
         }
     }
@@ -281,7 +281,7 @@ final class LocalSendService: ObservableObject {
     // MARK: Identity
 
     var deviceName: String {
-        let name = AppState.shared.localSendDeviceName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = LocalSendSettings.shared.deviceName.trimmingCharacters(in: .whitespacesAndNewlines)
         return name.isEmpty ? Self.macName : name
     }
 
@@ -320,7 +320,7 @@ final class LocalSendService: ObservableObject {
     func ownInfo(announce: Bool? = nil) -> LocalSendDeviceInfo {
         LocalSendDeviceInfo(alias: deviceName, deviceModel: Self.modelName, deviceType: .desktop,
                             fingerprint: fingerprint ?? Self.httpFingerprint(), port: Int(LocalSendProtocol.port),
-                            protocol: AppState.shared.localSendEncrypted && identity != nil ? "https" : "http",
+                            protocol: LocalSendSettings.shared.isEncrypted && identity != nil ? "https" : "http",
                             // True while files are on offer: LocalSend clients
                             // then show this Mac as one they can pull from.
                             download: offer != nil, announce: announce)
@@ -349,7 +349,7 @@ final class LocalSendService: ObservableObject {
         remember(info, host: host)
         // Answer an announcement so the device lists this Mac too; at most
         // once every few seconds per device.
-        guard info.announce == true, AppState.shared.localSendVisible else { return }
+        guard info.announce == true, LocalSendSettings.shared.isVisible else { return }
         if let last = lastAnswered[info.fingerprint], Date().timeIntervalSince(last) < 3 { return }
         lastAnswered[info.fingerprint] = Date()
         let peer = LocalSendPeer(info: info, host: host, lastSeen: Date())
@@ -661,12 +661,12 @@ final class LocalSendService: ObservableObject {
         // stand-in so favorites and the device list still work.
         if sender.fingerprint.isEmpty { sender.fingerprint = "v1:\(request.remoteHost)" }
         let favorite = isFavorite(sender.fingerprint)
-        switch state.localSendReceiveMode {
+        switch LocalSendSettings.shared.receiveMode {
         case .off: return .status(403, "Receiving is turned off")
         case .favorites where !favorite: return .status(403, "Only favorites can send to this device")
         default: break
         }
-        let pin = state.localSendPIN.trimmingCharacters(in: .whitespaces)
+        let pin = LocalSendSettings.shared.pin.trimmingCharacters(in: .whitespaces)
         if !pin.isEmpty {
             pinFailures.removeAll { Date().timeIntervalSince($0) > 60 }
             if pinFailures.count >= 5 { return .status(429, "Too many attempts") }
@@ -685,7 +685,7 @@ final class LocalSendService: ObservableObject {
         DroppyLog.info("LocalSend", "Incoming request from \(sender.alias) (\(files.count) file(s))")
 
         let accepted: Bool
-        if favorite && state.localSendQuickSaveFavorites && !isMessage {
+        if favorite && LocalSendSettings.shared.quickSaveFavorites && !isMessage {
             accepted = true
         } else {
             incoming = prompt
@@ -733,7 +733,7 @@ final class LocalSendService: ObservableObject {
     }
 
     var saveFolder: URL {
-        let path = AppState.shared.localSendSaveFolder
+        let path = LocalSendSettings.shared.saveFolder
         if !path.isEmpty { return URL(fileURLWithPath: path, isDirectory: true) }
         return FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
             ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads", isDirectory: true)
@@ -842,7 +842,7 @@ final class LocalSendService: ObservableObject {
         lastReceived = saved
         DroppyLog.info("LocalSend", "Received \(saved.count) file(s) from \(sender)")
         let state = AppState.shared
-        if state.localSendAddToShelf {
+        if LocalSendSettings.shared.addToShelf {
             state.addShelfItems(top.map { ShelfItem(url: $0) })
         }
         DroppyAudio.playDropSuccess()

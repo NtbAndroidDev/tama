@@ -59,7 +59,6 @@ public final class MenuBarManagerService: NSObject, ObservableObject {
 
     private func apply(enabled: Bool) {
         guard enabled else { return teardown() }
-        let state = AppState.shared
         // Created right to left: each new item lands left of the previous one.
         if toggleItem == nil {
             toggleItem = makeItem(Self.toggleName, length: NSStatusItem.variableLength)
@@ -67,9 +66,9 @@ public final class MenuBarManagerService: NSObject, ObservableObject {
             // Start folded, once AppKit has placed the new items.
             DispatchQueue.main.async { [weak self] in self?.hide() }
         }
-        if state.menuBarAlwaysHidden, alwaysDivider == nil {
+        if MenuBarSettings.shared.alwaysHidden, alwaysDivider == nil {
             alwaysDivider = makeItem(Self.alwaysName, length: Self.dividerLength)
-        } else if !state.menuBarAlwaysHidden, let item = alwaysDivider {
+        } else if !MenuBarSettings.shared.alwaysHidden, let item = alwaysDivider {
             NSStatusBar.system.removeStatusItem(item)
             alwaysDivider = nil
             isAlwaysHiddenRevealed = false
@@ -131,7 +130,7 @@ public final class MenuBarManagerService: NSObject, ObservableObject {
 
     private func layout() {
         guard let toggleItem, let hiddenDivider else { return }
-        let showsDividers = AppState.shared.menuBarShowDividers
+        let showsDividers = MenuBarSettings.shared.showDividers
         let open = showsDividers ? Self.dividerLength : 0
         // Only fold when every divider is still left of what it must not hide.
         isMisordered = !Self.isOrdered(left: hiddenDivider, right: toggleItem)
@@ -160,13 +159,12 @@ public final class MenuBarManagerService: NSObject, ObservableObject {
 
     private func drawToggle() {
         guard let button = toggleItem?.button else { return }
-        let state = AppState.shared
-        let symbol = state.menuBarToggleIcon.symbol(revealed: isRevealed)
+        let symbol = MenuBarSettings.shared.toggleIcon.symbol(revealed: isRevealed)
         let image = NSImage(systemSymbolName: symbol, accessibilityDescription: isRevealed ? "Hide menu bar items" : "Show hidden menu bar items")?
             .withSymbolConfiguration(.init(pointSize: 13, weight: .semibold))
-        image?.isTemplate = state.menuBarIconTemplate
+        image?.isTemplate = MenuBarSettings.shared.iconTemplate
         button.image = image
-        button.contentTintColor = state.menuBarIconTemplate ? nil : NSColor(state.accentColor.color)
+        button.contentTintColor = MenuBarSettings.shared.iconTemplate ? nil : NSColor(ThemeSettings.shared.accentColor.color)
         button.toolTip = isMisordered
             ? "Tama's divider is right of this icon. ⌘-drag it back to the left, or reset the layout in Settings."
             : "Click to show or hide menu bar items. Option-click for the always-hidden ones too."
@@ -200,8 +198,7 @@ public final class MenuBarManagerService: NSObject, ObservableObject {
 
     private func scheduleRehide() {
         rehideWork?.cancel()
-        let state = AppState.shared
-        guard state.menuBarAutoRehide else { return }
+        guard MenuBarSettings.shared.autoRehide else { return }
         let work = DispatchWorkItem { [weak self] in
             guard let self, self.isRevealed else { return }
             // The pointer is up in the menu bar, probably using a revealed item: wait.
@@ -209,7 +206,7 @@ public final class MenuBarManagerService: NSObject, ObservableObject {
             self.hide()
         }
         rehideWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + max(state.menuBarRehideDelay, 2), execute: work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(MenuBarSettings.shared.rehideDelay, 2), execute: work)
     }
 
     /// A one-off read of the pointer position (no monitoring).
@@ -226,7 +223,7 @@ public final class MenuBarManagerService: NSObject, ObservableObject {
         ) { _ in
             MainActor.assumeIsolated {
                 let service = MenuBarManagerService.shared
-                if service.isRevealed, AppState.shared.menuBarRehideOnAppSwitch { service.hide() }
+                if service.isRevealed, MenuBarSettings.shared.rehideOnAppSwitch { service.hide() }
             }
         }
     }

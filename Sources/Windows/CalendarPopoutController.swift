@@ -40,7 +40,7 @@ public final class CalendarPopoutController: NSObject, NSWindowDelegate {
 
     /// Keep calendar window on top.
     public func applyLevel() {
-        panel?.level = AppState.shared.calendarPopoutOnTop ? .floating : .normal
+        panel?.level = CalendarSettings.shared.popoutOnTop ? .floating : .normal
     }
 
     public func windowWillClose(_ notification: Notification) {

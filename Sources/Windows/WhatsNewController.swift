@@ -28,7 +28,7 @@ final class WhatsNewController: NSObject {
         let current = Self.currentVersion
         let last = defaults.string(forKey: Self.lastVersionKey)
         defaults.set(current, forKey: Self.lastVersionKey)
-        guard let last, last != current, AppState.shared.showWhatsNew,
+        guard let last, last != current, GeneralSettings.shared.showWhatsNew,
               defaults.bool(forKey: OnboardingWindowController.completedKey) else { return }
         DroppyLog.info("App", "Updated from \(last) to \(current)")
         // Let the notch settle first.
@@ -112,6 +112,9 @@ private struct WhatsNewView: View {
     @ObservedObject var model: WhatsNewModel
     let close: () -> Void
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var clipboardSettings = ClipboardSettings.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
 
     var body: some View {
         VStack(spacing: 14) {
@@ -134,7 +137,7 @@ private struct WhatsNewView: View {
 
             HStack {
                 if model.tab == .whatsNew {
-                    Toggle("Show after updates", isOn: $state.showWhatsNew)
+                    Toggle("Show after updates", isOn: $generalSettings.showWhatsNew)
                         .toggleStyle(.checkbox)
                         .font(.system(size: 11))
                 } else {
@@ -143,7 +146,7 @@ private struct WhatsNewView: View {
                     Button("Tama Guide…") { UserGuideWindowController.shared.show() }
                         .buttonStyle(.plain)
                         .font(.system(size: 11))
-                        .foregroundStyle(state.accentColor.color)
+                        .foregroundStyle(themeSettings.accentColor.color)
                         .help("Open the Tama Guide")
                 }
                 Spacer()
@@ -161,13 +164,16 @@ private struct WhatsNewView: View {
         .padding(.bottom, 16)
         .frame(width: ToolWindowMetrics.whatsNewSize.width, height: ToolWindowMetrics.whatsNewSize.height)
         .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow).ignoresSafeArea())
-        .tint(state.accentColor.color)
+        .tint(themeSettings.accentColor.color)
     }
 }
 
 private struct WhatsNewNotes: View {
     private let notes = ReleaseNotes.bundled()
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var clipboardSettings = ClipboardSettings.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
 
     var body: some View {
         ScrollView {
@@ -177,7 +183,7 @@ private struct WhatsNewNotes: View {
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 46, height: 46)
-                        .background(Circle().fill(state.accentColor.color.gradient))
+                        .background(Circle().fill(themeSettings.accentColor.color.gradient))
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
                         Text("New in Tama").font(.system(size: 18, weight: .bold))
@@ -221,6 +227,9 @@ struct SetupGuideList: View {
     @ObservedObject private var permissions = PermissionService.shared
     @ObservedObject private var launch = LaunchAtLoginService.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var clipboardSettings = ClipboardSettings.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @AppStorage("setupGuideDone") private var manualDone: String = ""
 
     struct Step: Identifiable {
@@ -264,9 +273,9 @@ struct SetupGuideList: View {
                  detail: GlobalShortcutService.shared.display(for: .toggleClipboard)
                     .map { "Press \($0) to open your history." }
                     ?? "Record a shortcut for it in Settings › Clipboard, then open your history from anywhere.",
-                 isDone: state.clipboardEnabled && manual.contains("clipboard"), actionTitle: "Show") {
+                 isDone: clipboardSettings.isEnabled && manual.contains("clipboard"), actionTitle: "Show") {
                 mark("clipboard")
-                if !state.clipboardEnabled { state.clipboardEnabled = true }
+                if !clipboardSettings.isEnabled { clipboardSettings.isEnabled = true }
                 SettingsWindowController.shared.showWindow(page: .clipboard)
             },
             Step(id: "drop", icon: "tray.and.arrow.down.fill", title: "Drop a file on the notch",
@@ -292,7 +301,7 @@ struct SetupGuideList: View {
                 ZStack {
                     Circle().stroke(DS.Palette.track, lineWidth: 5)
                     Circle().trim(from: 0, to: CGFloat(done) / CGFloat(max(steps.count, 1)))
-                        .stroke(state.accentColor.color, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .stroke(themeSettings.accentColor.color, style: StrokeStyle(lineWidth: 5, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                 }
                 .frame(width: 40, height: 40)

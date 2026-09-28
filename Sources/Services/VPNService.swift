@@ -38,7 +38,7 @@ public final class VPNService {
     private init() {}
 
     public func start() {
-        apply(enabled: AppState.shared.showVPNStatus)
+        apply(enabled: HUDSettings.shared.showVPNStatus)
     }
 
     public func apply(enabled: Bool) {
@@ -86,7 +86,7 @@ public final class VPNService {
     }
 
     private func check() {
-        guard AppState.shared.showVPNStatus else { return }
+        guard HUDSettings.shared.showVPNStatus else { return }
         guard !probing else { recheck = true; return }
         probing = true
         Task {
@@ -101,7 +101,7 @@ public final class VPNService {
     }
 
     private func update(_ status: Status?) {
-        guard AppState.shared.showVPNStatus else { return }
+        guard HUDSettings.shared.showVPNStatus else { return }
         let previous = current
         let wasFirstProbe = !hasProbed
         hasProbed = true

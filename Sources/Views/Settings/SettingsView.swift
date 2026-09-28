@@ -9,7 +9,7 @@ import SwiftUI
 /// (SettingsSearch.swift).
 public struct SettingsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ObservedObject var state = AppState.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @ObservedObject private var navigator = SettingsNavigator.shared
     @State private var query = ""
 
@@ -26,7 +26,7 @@ public struct SettingsView: View {
                 .padding([.top, .bottom, .trailing], 10)
         }
         .background(windowBackground.ignoresSafeArea())
-        .tint(state.accentColor.color)
+        .tint(themeSettings.accentColor.color)
         .frame(minWidth: 700, idealWidth: 780, minHeight: 520, idealHeight: 660)
         // Every fill here (cards, tiles, hairlines, the solid background) is
         // white-on-dark, so the window is dark whatever the system appearance.
@@ -39,13 +39,13 @@ public struct SettingsView: View {
     /// when Theming › Settings window › Solid background is on.
     private var windowBackground: some View {
         ZStack {
-            if state.solidSettingsBackground {
+            if themeSettings.solidSettingsBackground {
                 Color(red: 0.11, green: 0.11, blue: 0.12)
             } else {
                 VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
                 Color.black.opacity(0.18)
             }
-            if let tint = state.windowTintColor { tint.opacity(0.12) }
+            if let tint = themeSettings.windowTintColor { tint.opacity(0.12) }
         }
     }
 
@@ -99,6 +99,8 @@ public struct SettingsView: View {
 private struct SettingsSidebar: View {
     @Binding var query: String
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @ObservedObject private var navigator = SettingsNavigator.shared
     /// The result ↑ and ↓ have moved to; Return opens it.
     @State private var selection = 0
@@ -152,7 +154,7 @@ private struct SettingsSidebar: View {
     }
 
     private func highlighted(_ text: String) -> AttributedString {
-        SettingsSearchIndex.highlighted(text, query: trimmedQuery, color: state.accentColor.color)
+        SettingsSearchIndex.highlighted(text, query: trimmedQuery, color: themeSettings.accentColor.color)
     }
 
     var body: some View {
@@ -246,7 +248,7 @@ private struct SettingsSidebar: View {
             }
         }
         // Ours: switched-on droplets listed like apps under System Settings.
-        let hidden = Set(state.sidebarHiddenDroplets.split(separator: ",").map(String.init))
+        let hidden = Set(generalSettings.sidebarHiddenDroplets.split(separator: ",").map(String.init))
         let enabled = state.droplets.filter { $0.isEnabled && !hidden.contains($0.id) }
         if !enabled.isEmpty {
             Text("Enabled Droplets")
@@ -270,7 +272,7 @@ private struct SettingsSidebar: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Button("Search the guide instead") { UserGuideWindowController.shared.search(query) }
                     .buttonStyle(.plain)
-                    .foregroundStyle(state.accentColor.color)
+                    .foregroundStyle(themeSettings.accentColor.color)
             }
             .font(.system(size: 11))
             .padding(.leading, 10).padding(.top, 6)
@@ -418,6 +420,8 @@ struct KeyPill: View {
 
 struct GeneralSettingsPage: View {
     @ObservedObject var state = AppState.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var traySettings = TraySettings.shared
     @ObservedObject private var login = LaunchAtLoginService.shared
     @ObservedObject private var permissions = PermissionService.shared
     @State private var isConfirmingHideMenuBar = false
@@ -428,8 +432,8 @@ struct GeneralSettingsPage: View {
 
     /// Hiding the icon asks first, and says where Settings lives then.
     private var menuBarIcon: Binding<Bool> {
-        Binding(get: { state.showInMenuBar }, set: { on in
-            if on { state.showInMenuBar = true } else { isConfirmingHideMenuBar = true }
+        Binding(get: { generalSettings.showInMenuBar }, set: { on in
+            if on { generalSettings.showInMenuBar = true } else { isConfirmingHideMenuBar = true }
         })
     }
 
@@ -442,7 +446,7 @@ struct GeneralSettingsPage: View {
                                 anchor: "general.startup")
                     ToggleTiles([
                         ToggleTile("Menu bar icon", icon: "menubar.rectangle", isOn: menuBarIcon),
-                        ToggleTile("Dock icon", icon: "dock.rectangle", isOn: $state.showInDock),
+                        ToggleTile("Dock icon", icon: "dock.rectangle", isOn: $generalSettings.showInDock),
                         ToggleTile("Launch at login", icon: "power",
                                    isOn: Binding(get: { login.isEnabled }, set: { login.setEnabled($0) })),
                     ])
@@ -456,8 +460,8 @@ struct GeneralSettingsPage: View {
                         SettingsNote(error, icon: "exclamationmark.triangle.fill", tint: DS.Palette.danger)
                             .padding(.top, 10)
                     }
-                    if !state.showInMenuBar && !state.showInDock {
-                        SettingsNote("Right-click the Notch or Island to access Settings anytime.", icon: "cursorarrow.click.2")
+                    if !generalSettings.showInMenuBar && !generalSettings.showInDock {
+                        SettingsNote("Right-click the notch or island to open Settings anytime.", icon: "cursorarrow.click.2")
                             .padding(.top, 10)
                     }
                 }
@@ -488,8 +492,8 @@ struct GeneralSettingsPage: View {
                                 help: "Auto-remove takes a file off the Tray once it's been dragged into another app. Protect originals makes every drag out of the Tray and Basket a copy, so Finder can never move your original out of its folder.",
                                 anchor: "general.fileActions")
                     ToggleTiles([
-                        ToggleTile("Auto-remove", icon: "trash", isOn: $state.removeOnDragOut),
-                        ToggleTile("Protect originals", icon: "lock.shield", isOn: $state.protectOriginals),
+                        ToggleTile("Auto-remove", icon: "trash", isOn: $traySettings.removeOnDragOut),
+                        ToggleTile("Protect originals", icon: "lock.shield", isOn: $traySettings.protectOriginals),
                     ])
                 }
             }
@@ -529,7 +533,7 @@ struct GeneralSettingsPage: View {
                     SettingsDivider()
                     SettingsRow("Every shortcut, including per-widget ones") {
                         Button("Show All") { SettingsNavigator.shared.open(.shortcuts) }
-                            .help("Open Settings › Keyboard Shortcuts")
+                            .help("Open Settings › Keyboard shortcuts")
                     }
                 }
             }
@@ -555,9 +559,9 @@ struct GeneralSettingsPage: View {
             permissions.refresh()
         }
         .confirmationDialog("Hide menu bar icon?", isPresented: $isConfirmingHideMenuBar) {
-            Button("Hide Icon") { state.showInMenuBar = false }
+            Button("Hide Icon") { generalSettings.showInMenuBar = false }
         } message: {
-            Text("Right-click the Notch or Island to access Settings anytime.")
+            Text("Right-click the notch or island to open Settings anytime.")
         }
     }
 }
@@ -618,6 +622,10 @@ struct DisplayStyleThumbnail: View {
 struct ThemingSettingsPage: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject var state = AppState.shared
+    @ObservedObject private var displaySettings = DisplaySettings.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var hudSettings = HUDSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @AppStorage(DroppyAccentColor.customHexKey) private var accentHex = ""
     @State private var isPreviewHovered = false
     /// Light the preview's glow while the slider is dragged, so the change is visible.
@@ -631,7 +639,7 @@ struct ThemingSettingsPage: View {
                 SettingsGroup {
                     PreviewCardPicker(IslandSurfaceStyle.notchedChoices.map {
                         PreviewCardOption($0, $0.title, subtitle: $0.subtitle(notched: true))
-                    }, selection: $state.notchedSurfaceStyle) { style in
+                    }, selection: $themeSettings.notchedSurfaceStyle) { style in
                         SurfaceThumbnail(surface: style, notched: true)
                     }
                 }
@@ -643,7 +651,7 @@ struct ThemingSettingsPage: View {
                 SettingsGroup {
                     PreviewCardPicker(IslandSurfaceStyle.notchlessChoices.map {
                         PreviewCardOption($0, $0.title, subtitle: $0.subtitle(notched: false))
-                    }, selection: $state.notchlessSurfaceStyle) { style in
+                    }, selection: $themeSettings.notchlessSurfaceStyle) { style in
                         SurfaceThumbnail(surface: style, notched: false)
                     }
                 }
@@ -653,25 +661,25 @@ struct ThemingSettingsPage: View {
                 SettingsGroup {
                     SettingsToggleRow("Subtle outline",
                                       help: "A hairline around the open island and shelf, so a black surface stays visible against dark wallpapers.",
-                                      anchor: "theming.outline", isOn: $state.subtleOutline)
+                                      anchor: "theming.outline", isOn: $themeSettings.subtleOutline)
                     SettingsDivider()
                     SettingsToggleRow("Show in resting state",
-                                      subtitle: state.subtleOutline ? nil : "Needs Subtle outline.",
+                                      subtitle: themeSettings.subtleOutline ? nil : "Needs Subtle outline.",
                                       help: "Draw the outline around the resting notch or island too.",
-                                      isOn: $state.outlineInRestingState)
-                        .settingsDisabled(!state.subtleOutline)
+                                      isOn: $themeSettings.outlineInRestingState)
+                        .settingsDisabled(!themeSettings.subtleOutline)
                 }
             }
 
             SettingsSection("Glow & corners") {
                 SettingsGroup {
-                    SettingsSlider("Border glow", value: $state.borderGlowIntensity, in: 0...1.5, step: 0.05,
+                    SettingsSlider("Border glow", value: $themeSettings.borderGlowIntensity, in: 0...1.5, step: 0.05,
                                    defaultValue: 0.8,
-                                   help: "While the pointer is on the island: the floating pill gets a highlight-colored border and glow; on a notch, the open shelf casts a halo. 0 % turns it off.",
+                                   help: "While the pointer is on the island: the floating pill gets a highlight-colored border and glow; on a notch, the open shelf casts a halo. 0% turns it off.",
                                    anchor: "theming.glow") { "\(Int($0 * 100))%" }
                         .onHover { isAdjustingGlow = $0 }
                     SettingsDivider()
-                    SettingsSlider("Notch corner fillet", value: $state.notchEarFilletRadius, in: 0...24, step: 1,
+                    SettingsSlider("Notch corner fillet", value: $themeSettings.notchEarFilletRadius, in: 0...24, step: 1,
                                    defaultValue: 12,
                                    help: "Rounds the corners where the open shelf meets the top of the screen. The resting notch keeps the hardware's own curve.",
                                    anchor: "theming.fillet") { "\(Int($0)) pt" }
@@ -687,7 +695,7 @@ struct ThemingSettingsPage: View {
                 SettingsGroup {
                     SettingsToggleRow("Solid background",
                                       help: "Paint this window in one opaque color instead of translucent glass, so a bright desktop behind it doesn't wash the text out.",
-                                      anchor: "theming.solidSettings", isOn: $state.solidSettingsBackground)
+                                      anchor: "theming.solidSettings", isOn: $themeSettings.solidSettingsBackground)
                 }
             }
 
@@ -695,12 +703,12 @@ struct ThemingSettingsPage: View {
                 SettingsGroup {
                     ZStack(alignment: .top) {
                         PreviewWallpaper()
-                        IslandSurfaceFill(surface: state.notchlessSurfaceStyle, tint: state.windowTintColor)
+                        IslandSurfaceFill(surface: themeSettings.notchlessSurfaceStyle, tint: themeSettings.windowTintColor)
                             .clipShape(Capsule())
                             .overlay(Capsule().strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
                             .overlay(
                                 HStack(spacing: 6) {
-                                    RoundedRectangle(cornerRadius: 3).fill(state.accentColor.color).frame(width: 14, height: 14)
+                                    RoundedRectangle(cornerRadius: 3).fill(themeSettings.accentColor.color).frame(width: 14, height: 14)
                                     Capsule().fill(Color.white.opacity(0.7)).frame(width: 50, height: 4)
                                     Spacer(minLength: 0)
                                     Image(systemName: "waveform").font(.system(size: 9)).foregroundStyle(.white)
@@ -708,22 +716,25 @@ struct ThemingSettingsPage: View {
                                 .padding(.horizontal, 8)
                             )
                             .frame(width: 130, height: 26)
-                            .offset(y: 6 + max(-6, state.mediaHUDVerticalOffset) * 0.6)
+                            .offset(y: 6 + max(-8, displaySettings.mediaHUDVerticalOffset) * 0.6)
                     }
                     .frame(height: 110)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .padding(12)
-                    .animation(DS.Motion.respecting(reduceMotion, DS.Motion.snap), value: state.mediaHUDVerticalOffset)
+                    .animation(DS.Motion.respecting(reduceMotion, DS.Motion.snap), value: displaySettings.mediaHUDVerticalOffset)
                     .accessibilityHidden(true)
                     SettingsDivider()
-                    SettingsSlider("Vertical position", value: $state.mediaHUDVerticalOffset, in: -8...40, step: 1,
+                    SettingsSlider("Vertical position", value: $displaySettings.mediaHUDVerticalOffset, in: -8...40, step: 1,
                                    defaultValue: 0,
                                    help: "Moves the floating island (with its media HUD) down from the top of a display without a notch.",
-                                   anchor: "theming.mediaHUD") { String(format: "%+.0f pt", $0) }
+                                   anchor: "theming.mediaHUD",
+                                   subtitle: generalSettings.islandStyle == .floatingPill
+                                       ? nil : "Needs HUDs › Display style › External displays set to Dynamic Island.") { String(format: "%+.0f pt", $0) }
+                        .settingsDisabled(generalSettings.islandStyle != .floatingPill)
                 }
             }
 
-            SettingsSection("General",
+            SettingsSection("Colors",
                             subtitle: "Scrub each tape to pick a color. Default keeps Tama's automatic color; the last swatch is a custom hex.") {
                 Grid(horizontalSpacing: 12, verticalSpacing: 12) {
                     GridRow {
@@ -734,20 +745,20 @@ struct ThemingSettingsPage: View {
                         TapeColorPicker("Window tint",
                                         help: "A subtle wash over Settings and the glass surfaces of the island.",
                                         anchor: "theming.windowTint", swatches: Self.paletteSwatches,
-                                        selection: tapeSelection($state.windowTint),
-                                        customHex: customHex($state.windowTint))
+                                        selection: tapeSelection($themeSettings.windowTint),
+                                        customHex: customHex($themeSettings.windowTint))
                     }
                     GridRow {
                         TapeColorPicker("Volume slider color",
                                         help: "The volume HUD's meter. Default follows the highlight color; White and Decibel are the HUD's own styles.",
                                         anchor: "theming.volumeColor", swatches: Self.meterSwatches,
-                                        selection: meterSelection($state.hudMeterStyle, $state.hudMeterCustomColor),
-                                        customHex: customHex($state.hudMeterCustomColor))
+                                        selection: meterSelection($hudSettings.hudMeterStyle, $hudSettings.hudMeterCustomColor),
+                                        customHex: customHex($hudSettings.hudMeterCustomColor))
                         TapeColorPicker("Brightness slider color",
                                         help: "The brightness HUD's meter. Default follows the highlight color; White and Decibel are the HUD's own styles.",
                                         anchor: "theming.brightnessColor", swatches: Self.meterSwatches,
-                                        selection: meterSelection($state.brightnessHUDMeterStyle, $state.brightnessHUDMeterCustomColor),
-                                        customHex: customHex($state.brightnessHUDMeterCustomColor))
+                                        selection: meterSelection($hudSettings.brightnessHUDMeterStyle, $hudSettings.brightnessHUDMeterCustomColor),
+                                        customHex: customHex($hudSettings.brightnessHUDMeterCustomColor))
                     }
                 }
             }
@@ -766,19 +777,19 @@ struct ThemingSettingsPage: View {
     private var accentSelection: Binding<String> {
         Binding(
             get: {
-                switch state.accentColor {
+                switch themeSettings.accentColor {
                 case .electricBlue: "default"
                 case .custom: "custom"
-                default: state.accentColor.rawValue
+                default: themeSettings.accentColor.rawValue
                 }
             },
             set: { id in
                 switch id {
-                case "default": state.accentColor = .electricBlue
+                case "default": themeSettings.accentColor = .electricBlue
                 case "custom":
-                    if accentHex.isEmpty { accentHex = state.accentColor.color.hexString }
-                    state.accentColor = .custom
-                default: state.accentColor = DroppyAccentColor(rawValue: id) ?? .electricBlue
+                    if accentHex.isEmpty { accentHex = themeSettings.accentColor.color.hexString }
+                    themeSettings.accentColor = .custom
+                default: themeSettings.accentColor = DroppyAccentColor(rawValue: id) ?? .electricBlue
                 }
             }
         )
@@ -807,7 +818,7 @@ struct ThemingSettingsPage: View {
                 switch id {
                 case "default": value.wrappedValue = ""
                 case "custom":
-                    let current = TapePalette.color(for: value.wrappedValue) ?? state.accentColor.color
+                    let current = TapePalette.color(for: value.wrappedValue) ?? themeSettings.accentColor.color
                     value.wrappedValue = current.hexString
                 default: value.wrappedValue = id
                 }
@@ -841,7 +852,7 @@ struct ThemingSettingsPage: View {
                 case "white": style.wrappedValue = .white
                 case "decibel": style.wrappedValue = .decibel
                 case "custom":
-                    let current = TapePalette.color(for: color.wrappedValue) ?? state.accentColor.color
+                    let current = TapePalette.color(for: color.wrappedValue) ?? themeSettings.accentColor.color
                     color.wrappedValue = current.hexString
                     style.wrappedValue = .custom
                 default:
@@ -857,16 +868,16 @@ struct ThemingSettingsPage: View {
 private struct SurfaceThumbnail: View {
     let surface: IslandSurfaceStyle
     let notched: Bool
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
 
     var body: some View {
         VStack(spacing: 0) {
             ZStack {
                 if notched {
-                    IslandSurfaceFill(surface: surface, solidTop: 14, tint: state.windowTintColor)
+                    IslandSurfaceFill(surface: surface, solidTop: 14, tint: themeSettings.windowTintColor)
                         .clipShape(NotchWithEarsShape(cornerRadius: 12, earRadius: 6))
                 } else {
-                    IslandSurfaceFill(surface: surface, tint: state.windowTintColor)
+                    IslandSurfaceFill(surface: surface, tint: themeSettings.windowTintColor)
                         .clipShape(Capsule())
                         .overlay(Capsule().strokeBorder(Color.white.opacity(surface == .black ? 0.1 : 0.22), lineWidth: 1))
                 }
@@ -891,9 +902,10 @@ private struct SurfaceThumbnail: View {
 
 struct AccessibilitySettingsPage: View {
     @ObservedObject var state = AppState.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
 
     private var surfaceName: String {
-        state.islandStyle == .notchAttached && state.notchHeight > 0 ? "Notch" : "Island"
+        generalSettings.islandStyle == .notchAttached && state.notchHeight > 0 ? "Notch" : "Island"
     }
 
     var body: some View {
@@ -902,31 +914,33 @@ struct AccessibilitySettingsPage: View {
                 SettingsGroup {
                     SettingsToggleRow("Right-click to hide",
                                       help: "Adds \u{201C}Hide \(surfaceName)\u{201D} to the right-click menu of the notch or island. Hidden, it stays out of sight until you bring it back; level HUDs, banners and the open shelf still show.",
-                                      anchor: "a11y.rightClickHide", isOn: $state.rightClickToHide)
+                                      anchor: "a11y.rightClickHide", isOn: $generalSettings.rightClickToHide)
                     SettingsDivider()
                     SettingsToggleRow("Right-click to reveal",
+                                      subtitle: generalSettings.rightClickToHide || state.isIslandHidden ? nil : "Needs Right-click to hide.",
                                       help: "While hidden, right-click where the notch or island sits (the top centre of the screen) to show it again.",
-                                      anchor: "a11y.rightClickReveal", isOn: $state.rightClickToReveal)
+                                      anchor: "a11y.rightClickReveal", isOn: $generalSettings.rightClickToReveal)
+                        .settingsDisabled(!generalSettings.rightClickToHide && !state.isIslandHidden)
                     SettingsDivider()
                     SettingsToggleRow("Hold to reveal",
                                       help: "Keep the resting notch or island hidden until you hold a modifier combo, and show it only while the keys are down.",
-                                      anchor: "a11y.holdReveal", isOn: $state.holdToReveal)
-                    if state.holdToReveal {
+                                      anchor: "a11y.holdReveal", isOn: $generalSettings.holdToReveal)
+                    if generalSettings.holdToReveal {
                         ChoiceTiles(ShortcutModifier.allCases.map { .init($0, $0.symbol) },
-                                    selection: $state.holdToRevealModifier)
+                                    selection: $generalSettings.holdToRevealModifier)
                     }
                     SettingsDivider()
                     SettingsToggleRow("Haptic feedback",
                                       help: "Subtle tactile feedback on a Force Touch trackpad when you drop files or trigger actions.",
-                                      anchor: "a11y.haptics", isOn: $state.hapticFeedback)
+                                      anchor: "a11y.haptics", isOn: $generalSettings.hapticFeedback)
                     SettingsDivider()
                     SettingsToggleRow("Sound effects",
                                       help: "Soft system sounds for taps, drops, copies and snips.",
-                                      anchor: "a11y.sounds", isOn: $state.soundEffects)
+                                      anchor: "a11y.sounds", isOn: $generalSettings.soundEffects)
                     SettingsDivider()
                     SettingsToggleRow("Show tooltips",
                                       help: "Hover help on Tama's buttons and settings. The ⓘ buttons still explain on click when this is off. Windows already open may keep their tooltips until Tama restarts.",
-                                      anchor: "a11y.tooltips", isOn: $state.showTooltips)
+                                      anchor: "a11y.tooltips", isOn: $generalSettings.showTooltips)
                     if state.isIslandHidden {
                         SettingsDivider()
                         SettingsRow("The \(surfaceName.lowercased()) is hidden") {
@@ -940,7 +954,7 @@ struct AccessibilitySettingsPage: View {
                 SettingsGroup {
                     SettingsToggleRow("Hide from screenshots",
                                       help: "Leaves the notch, island, shelf, Basket, clipboard and Live Activity HUD out of screenshots and screen sharing. macOS's own screenshot tools honour this; some screen-recording apps may still capture them.",
-                                      anchor: "a11y.screenshots", isOn: $state.hideFromScreenshots)
+                                      anchor: "a11y.screenshots", isOn: $generalSettings.hideFromScreenshots)
                 }
             }
         }
@@ -951,6 +965,8 @@ struct AccessibilitySettingsPage: View {
 
 struct AboutSettingsPage: View {
     @ObservedObject var state = AppState.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @State private var isShowingChangelog = false
     @State private var isChoosingTransfer = false
     @State private var isConfirmingClearLogs = false
@@ -980,14 +996,14 @@ struct AboutSettingsPage: View {
             VStack(spacing: 10) {
                 ZStack {
                     Circle()
-                        .fill(RadialGradient(colors: [state.accentColor.color.opacity(0.9), state.accentColor.color.opacity(0.45)],
+                        .fill(RadialGradient(colors: [themeSettings.accentColor.color.opacity(0.9), themeSettings.accentColor.color.opacity(0.45)],
                                              center: .top, startRadius: 4, endRadius: 60))
                         .overlay(Circle().strokeBorder(Color.black, lineWidth: 6))
                         .frame(width: 88, height: 88)
                     Image(systemName: "drop.fill").font(.system(size: 38)).foregroundStyle(.white)
                 }
                 .accessibilityHidden(true)
-                .shadow(color: state.accentColor.color.opacity(0.55), radius: 26)
+                .shadow(color: themeSettings.accentColor.color.opacity(0.55), radius: 26)
                 Text("Tama \(version)").font(.system(size: 20, weight: .bold))
                 Text(build.map { "Build \($0)" } ?? "Supercharged Dynamic Island for macOS")
                     .font(.system(size: 13)).foregroundStyle(.secondary)
@@ -1009,7 +1025,7 @@ struct AboutSettingsPage: View {
                 HStack(spacing: 12) {
                     SettingsCardButton(icon: "sparkles", title: "What's New", subtitle: "New features, fixes and polish",
                                        anchor: "about.whatsNew") { WhatsNewController.shared.show(.whatsNew) }
-                    SettingsCardButton(icon: "checklist", title: "Setup Guide", subtitle: "Recommended setup",
+                    SettingsCardButton(icon: "checklist", title: "Setup guide", subtitle: "Recommended setup",
                                        anchor: "about.setupGuide") { WhatsNewController.shared.show(.setup) }
                     SettingsCardButton(icon: "text.book.closed.fill", title: "Tama Guide",
                                        subtitle: "How every part of Tama works",
@@ -1020,7 +1036,7 @@ struct AboutSettingsPage: View {
             SettingsSection("Privacy") {
                 HStack(spacing: 12) {
                     SettingsCardButton(icon: "hand.raised.fill", title: "Tracking", subtitle: "Off",
-                                       help: "Tama has no analytics, telemetry or crash reporting. Nothing about how you use it leaves your Mac.",
+                                       help: "Tama has no analytics or telemetry, and crash reports never leave your Mac. Nothing about how you use it is sent anywhere.",
                                        anchor: "about.privacy")
                     SettingsCardButton(icon: "internaldrive.fill", title: "On-device data", subtitle: "Stays on your Mac",
                                        help: "Clipboard history, Tray files, notes and settings are stored in ~/Library/Application Support/Tama and Tama's preferences. Text recognition and transcription run on your Mac.")
@@ -1039,8 +1055,8 @@ struct AboutSettingsPage: View {
                 }
                 SettingsGroup {
                     SettingsToggleRow("Diagnostic logging", subtitle: "Write detailed logs for troubleshooting",
-                                      help: "Keeps a log of what Tama's services do in ~/Library/Logs/Tama (at most about 4 MB). Nothing is sent anywhere; Export logs saves a report you can share yourself. Clipboard contents and PINs are never logged.",
-                                      anchor: "about.logging", isOn: $state.diagnosticLogging)
+                                      help: "Keeps a log of what Tama's services do in ~/Library/Logs/Tama (at most about 4 MB). Nothing is sent anywhere; Export Logs… saves a report you can share yourself. Clipboard contents and PINs are never logged.",
+                                      anchor: "about.logging", isOn: $generalSettings.diagnosticLogging)
                     SettingsDivider()
                     SettingsToggleRow("Tell me after a crash", subtitle: "Show the report macOS wrote, to copy",
                                       help: "Tama has no crash reporting of its own and sends nothing. After a crash it reads the report macOS already wrote to ~/Library/Logs/DiagnosticReports, takes your account name, home folder and this Mac's identifiers out of it, and offers to put it on the clipboard.",
@@ -1052,15 +1068,22 @@ struct AboutSettingsPage: View {
                     }
                     SettingsDivider()
                     SettingsRow("Logs", subtitle: "A report with version, macOS, settings and the log file.", anchor: "about.exportLogs") {
-                        HStack(spacing: 8) {
-                            Button("Show in Finder") {
-                                try? FileManager.default.createDirectory(at: DroppyLog.folder, withIntermediateDirectories: true)
-                                NSWorkspace.shared.open(DroppyLog.folder)
-                            }
-                            Button("Clear…") { isConfirmingClearLogs = true }
-                            Button("Export Logs…") { DroppyLog.export() }
-                        }
+                        Button("Export Logs…") { DroppyLog.export() }
                     }
+                    HStack(spacing: 8) {
+                        Button("Show in Finder") {
+                            try? FileManager.default.createDirectory(at: DroppyLog.folder, withIntermediateDirectories: true)
+                            NSWorkspace.shared.open(DroppyLog.folder)
+                        }
+                        Button("Clear…") { isConfirmingClearLogs = true }
+                    }
+                    .controlSize(.small)
+                    .padding(.horizontal, SettingsStyle.rowPadding.leading)
+                    .padding(.bottom, SettingsStyle.rowPadding.bottom)
+                    SettingsDivider()
+                    SettingsToggleRow("Show What's New after updates",
+                                      help: "Open the What's New window the first time Tama runs after an update. It's always in About › What's New.",
+                                      anchor: "about.showWhatsNew", isOn: $generalSettings.showWhatsNew)
                 }
             }
         }
@@ -1075,7 +1098,7 @@ struct AboutSettingsPage: View {
             Button("Export Settings…") { state.exportSettings() }
             Button("Import Settings…") { state.importSettings() }
         } message: {
-            Text("A JSON file with every preference, including shortcuts — handy for a new Mac. Clips and files aren't included.")
+            Text("A JSON file with every preference, including shortcuts — handy for a new Mac. Clips and files aren't included. Importing replaces your current settings.")
         }
     }
 }
@@ -1181,12 +1204,16 @@ struct PermissionRow: View {
                 .frame(width: 22)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
+            // The badge sits under the purpose, so the title keeps its width
+            // when the row also carries two buttons.
             VStack(alignment: .leading, spacing: 2) {
-                Text(kind.title)
-                Text(kind.purpose).font(.caption).foregroundStyle(.secondary)
+                Text(kind.title).font(SettingsStyle.rowTitle)
+                Text(kind.purpose).font(SettingsStyle.rowSubtitle).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                badge
             }
-            Spacer()
-            badge
+            .layoutPriority(1)
+            Spacer(minLength: 8)
             switch status {
             case .granted:
                 if kind != .notifications {
@@ -1213,32 +1240,31 @@ struct PermissionRow: View {
             }
         }
         .padding(.vertical, 2)
-        .confirmationDialog("Reset Automation access?", isPresented: $isConfirmingReset) {
-            Button("Reset Automation", role: .destructive) { PermissionService.shared.reset(kind) }
+        .confirmationDialog(resetsAllAutomation ? "Reset Automation access?" : "Reset \(kind.title) access?",
+                            isPresented: $isConfirmingReset) {
+            Button(resetsAllAutomation ? "Reset Automation" : "Reset", role: .destructive) { PermissionService.shared.reset(kind) }
         } message: {
-            Text("macOS keeps one Automation permission for Tama, so this clears its access to Music, Spotify and browsers alike. Each app asks again the next time Tama controls it.")
+            if resetsAllAutomation {
+                Text("macOS keeps one Automation permission for Tama, so this clears its access to Music, Spotify and browsers alike. Each app asks again the next time Tama controls it.")
+            } else {
+                Text("macOS forgets this grant, so the features that need it stop until you allow it again.")
+            }
         }
     }
 
     private func resetButton(help: String) -> some View {
-        Button("Reset") {
-            if resetsAllAutomation {
-                isConfirmingReset = true
-            } else {
-                PermissionService.shared.reset(kind)
-            }
-        }
+        Button("Reset") { isConfirmingReset = true }
         .help(resetsAllAutomation ? "Clear Tama's Automation access for every app, so macOS asks again" : help)
     }
 
     private var badge: some View {
         let (text, color): (String, Color) = switch status {
-        case .granted: ("Allowed", .green)
+        case .granted: ("Allowed", DS.Palette.success)
         // macOS doesn't say whether the prompt was answered Allow or Deny, so
         // the relaunch is conditional.
-        case .denied where needsRelaunch: ("Relaunch after allowing", .orange)
-        case .denied: ("Not allowed", .red)
-        case .notDetermined: ("Not asked", .orange)
+        case .denied where needsRelaunch: ("Relaunch after allowing", DS.Palette.warning)
+        case .denied: ("Not allowed", DS.Palette.danger)
+        case .notDetermined: ("Not asked", DS.Palette.warning)
         case .unavailable: ("Open the app first", .secondary)
         case .checking: ("Checking…", .secondary)
         }
@@ -1253,16 +1279,17 @@ struct PermissionRow: View {
 /// A miniature desktop with the resting island on it, drawn with the same glass,
 /// shape, accent and glow settings as the real one.
 private struct AppearancePreview: View {
-    @ObservedObject var state = AppState.shared
+    @ObservedObject private var generalSettings = GeneralSettings.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     var isGlowing: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var isNotch: Bool { state.islandStyle == .notchAttached }
+    private var isNotch: Bool { generalSettings.islandStyle == .notchAttached }
 
     var body: some View {
         ZStack(alignment: .top) {
             LinearGradient(
-                colors: [state.accentColor.color.opacity(0.55), Color(white: 0.12), Color(white: 0.06)],
+                colors: [themeSettings.accentColor.color.opacity(0.55), Color(white: 0.12), Color(white: 0.06)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -1271,29 +1298,29 @@ private struct AppearancePreview: View {
         }
         .frame(height: 110)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .animation(DS.Motion.respecting(reduceMotion, .spring(response: 0.35, dampingFraction: 0.8)), value: state.islandStyle)
+        .animation(DS.Motion.respecting(reduceMotion, .spring(response: 0.35, dampingFraction: 0.8)), value: generalSettings.islandStyle)
         .animation(DS.Motion.respecting(reduceMotion, .easeOut(duration: 0.2)), value: isGlowing)
     }
 
     private var island: some View {
         HStack(spacing: 10) {
             Circle()
-                .fill(state.accentColor.color)
+                .fill(themeSettings.accentColor.color)
                 .frame(width: 9, height: 9)
             Text("Tama")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.white)
             Spacer()
-            Equalizer(color: state.accentColor.color)
+            Equalizer(color: themeSettings.accentColor.color)
         }
-        .padding(.horizontal, isNotch ? 14 + state.notchEarFilletRadius : 16)
-        .frame(width: 240 + (isNotch ? state.notchEarFilletRadius * 2 : 0), height: isNotch ? 34 : 38)
+        .padding(.horizontal, isNotch ? 14 + themeSettings.notchEarFilletRadius : 16)
+        .frame(width: 240 + (isNotch ? themeSettings.notchEarFilletRadius * 2 : 0), height: isNotch ? 34 : 38)
         .liquidGlass(
             cornerRadius: isNotch ? 12 : 19,
             showBorder: !isNotch,
             isHovered: isGlowing,
             isNotchAttached: isNotch,
-            earRadius: isNotch ? state.notchEarFilletRadius : 0
+            earRadius: isNotch ? themeSettings.notchEarFilletRadius : 0
         )
     }
 }

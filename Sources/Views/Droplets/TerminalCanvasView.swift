@@ -299,8 +299,8 @@ final class TerminalCanvasView: NSView {
         case "k": session.clear()
         case "t": TermiNotchSessions.shared.newTab()
         case "w": TermiNotchSessions.shared.close(session)
-        case "=", "+": AppState.shared.termiNotchFontSize = min(AppState.shared.termiNotchFontSize + 1, 18)
-        case "-": AppState.shared.termiNotchFontSize = max(AppState.shared.termiNotchFontSize - 1, 9)
+        case "=", "+": TermiNotchSettings.shared.fontSize = min(TermiNotchSettings.shared.fontSize + 1, 18)
+        case "-": TermiNotchSettings.shared.fontSize = max(TermiNotchSettings.shared.fontSize - 1, 9)
         default: super.keyDown(with: event)
         }
     }

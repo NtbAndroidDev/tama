@@ -374,7 +374,7 @@ public final class NotchWindowController: NSObject {
 
     private func syncMirrors() {
         let state = AppState.shared
-        guard state.displayTargetMode == .all, NSScreen.screens.count > 1 else {
+        guard DisplaySettings.shared.displayTargetMode == .all, NSScreen.screens.count > 1 else {
             mirrors.values.forEach { $0.orderOut(nil) }
             mirrors.removeAll()
             return
@@ -537,7 +537,7 @@ public final class NotchWindowController: NSObject {
     /// screen the pointer is on.
     private func followPointerScreen(_ mouse: NSPoint) {
         let state = AppState.shared
-        guard state.displayTargetMode.followsPointer,
+        guard DisplaySettings.shared.displayTargetMode.followsPointer,
               // An open shelf or drop tiles stay on their screen until they close.
               !state.isIslandExpanded, !state.isDragHovering,
               let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }),
@@ -620,7 +620,7 @@ public final class NotchWindowController: NSObject {
     /// live one off a screen that no longer may, and redo the mirrors.
     public func surfaceRulesChanged() {
         let state = AppState.shared
-        if state.displayTargetMode.followsPointer,
+        if DisplaySettings.shared.displayTargetMode.followsPointer,
            let current = state.getTargetScreen(), !state.allowsSurface(on: current) {
             let mouse = NSEvent.mouseLocation
             let allowed = state.surfaceScreens
@@ -712,9 +712,9 @@ public final class NotchWindowController: NSObject {
             // The setting only governs opening; leaving closes a shelf either way.
             // Settings › Pomodoro › Hover opens the timer: the running timer in
             // the wings opens straight onto Pomodoro, even without Auto-expand.
-            let hoversTimer = AppState.shared.pomodoroHoverOpens && AppState.shared.isPomodoroActive
+            let hoversTimer = PomodoroSettings.shared.hoverOpens && AppState.shared.isPomodoroActive
                 && RestingSlot.ordered().first == .pomodoro
-            if AppState.shared.expandOnHover || hoversTimer, !AppState.shared.isIslandExpanded, openWork == nil, !suppressHoverOpen {
+            if GeneralSettings.shared.expandOnHover || hoversTimer, !AppState.shared.isIslandExpanded, openWork == nil, !suppressHoverOpen {
                 // A short dwell, so sweeping past the menu bar doesn't pop it open.
                 let work = DispatchWorkItem { [weak self] in
                     self?.openWork = nil
@@ -729,7 +729,7 @@ public final class NotchWindowController: NSObject {
                     AppState.shared.setIslandExpanded(true)
                 }
                 openWork = work
-                let delay = hoversTimer ? min(AppState.shared.hoverOpenDelay, 0.15) : AppState.shared.hoverOpenDelay
+                let delay = hoversTimer ? min(GeneralSettings.shared.hoverOpenDelay, 0.15) : GeneralSettings.shared.hoverOpenDelay
                 DispatchQueue.main.asyncAfter(deadline: .now() + max(delay, 0), execute: work)
             }
         } else {
@@ -741,16 +741,16 @@ public final class NotchWindowController: NSObject {
 
     private func scheduleAutoCollapse() {
         // Settings › Shelf › Auto-collapse off: only a click elsewhere or Esc closes it.
-        guard collapseTimer == nil, AppState.shared.autoCollapse else { return }
+        guard collapseTimer == nil, ShelfSettings.shared.autoCollapse else { return }
 
         collapseTimer = Timer.scheduledTimer(
-            withTimeInterval: AppState.shared.autoHideDelay,
+            withTimeInterval: GeneralSettings.shared.autoHideDelay,
             repeats: false
         ) { [weak self] _ in
             Task { @MainActor in
                 guard let self = self, let rect = self.currentIslandRect() else { return }
                 defer { self.collapseTimer = nil }
-                guard AppState.shared.autoCollapse, AppState.shared.canAutoCollapse else { return }
+                guard ShelfSettings.shared.autoCollapse, AppState.shared.canAutoCollapse else { return }
 
                 let stillInside = NSMouseInRect(NSEvent.mouseLocation, rect.insetBy(dx: -10, dy: -10), false)
                 if !stillInside {
@@ -769,7 +769,7 @@ public final class NotchWindowController: NSObject {
         // Only when the pointer had already left of its own accord: the shelf
         // growing or shrinking under a pointer that is standing still is the
         // island moving away, not the person leaving.
-        guard collapseTimer == nil, state.isIslandExpanded, state.autoCollapse,
+        guard collapseTimer == nil, state.isIslandExpanded, ShelfSettings.shared.autoCollapse,
               state.canAutoCollapse, pointerVisitedShelf, pointerWasOutside,
               let rect = currentIslandRect(),
               !NSMouseInRect(NSEvent.mouseLocation, rect.insetBy(dx: -10, dy: -10), false)

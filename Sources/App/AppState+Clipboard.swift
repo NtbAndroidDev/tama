@@ -12,9 +12,9 @@ extension AppState {
             // A repeat of an older clip moves that clip to the front rather
             // than stacking a second copy of it.
             guard let updated = ClipboardHistory.inserting(item, into: self.clipboardItems,
-                                                           rejectDuplicates: self.clipboardRejectDuplicates) else { return }
+                                                           rejectDuplicates: ClipboardSettings.shared.rejectDuplicates) else { return }
             // Trimmed before it's published: every write to the list redraws the tree.
-            self.clipboardItems = ClipboardHistory.trimmed(updated, limit: self.clipboardHistoryLimit)
+            self.clipboardItems = ClipboardHistory.trimmed(updated, limit: ClipboardSettings.shared.historyLimit)
             if item.type == .image, !updated.contains(where: { $0.id == item.id }) {
                 // Its PNG was already written; the kept clip has its own.
                 let url = ClipboardImageStore.url(for: item.content)
@@ -31,14 +31,14 @@ extension AppState {
         }
         // Image files are removed lazily so "Clear History" can still be undone.
         ClipboardService.shared.removeUnusedImages(referencedBy: clipboardItems)
-        if clipboardEnabled { ClipboardService.shared.startMonitoring() }
+        if ClipboardSettings.shared.isEnabled { ClipboardService.shared.startMonitoring() }
         ClipboardPrivacy.shared.startRetention(for: self)
     }
 
     /// Settings › Clipboard › Clipboard manager: start or stop recording, and
     /// put the clipboard away when it's switched off.
     func applyClipboardEnabled() {
-        if clipboardEnabled {
+        if ClipboardSettings.shared.isEnabled {
             if !ClipboardService.shared.isMonitoring { ClipboardService.shared.startMonitoring() }
         } else {
             ClipboardService.shared.stopMonitoring()
@@ -49,7 +49,7 @@ extension AppState {
     /// The shortcut, menus and Ring go through here: with the manager off
     /// they point at Settings instead.
     func clipboardIsAvailable() -> Bool {
-        guard clipboardEnabled else {
+        guard ClipboardSettings.shared.isEnabled else {
             showNotification(
                 appName: "Clipboard",
                 title: "Clipboard is off",
@@ -72,7 +72,7 @@ extension AppState {
     /// it isn't recorded as a second clip.
     private func autoCopyClipText(_ text: String, copiedAt changeCount: Int) {
         let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard autoCopyOCRText, !clean.isEmpty, ClipboardService.shared.changeCount == changeCount else { return }
+        guard TraySettings.shared.autoCopyOCRText, !clean.isEmpty, ClipboardService.shared.changeCount == changeCount else { return }
         ClipboardService.shared.copyToPasteboard(text: clean)
         DroppyAudio.playCopySuccess()
         showNotification(appName: "Clipboard", title: "Auto-copy result",
@@ -82,7 +82,7 @@ extension AppState {
     /// Settings › Clipboard › Clear history on quit. Starred and pinboard
     /// clips are kept, as with Clear History.
     func clearClipboardOnQuitIfNeeded() {
-        guard clipboardClearOnQuit else { return }
+        guard ClipboardSettings.shared.clearOnQuit else { return }
         clearClipboard()
     }
 
@@ -95,12 +95,12 @@ extension AppState {
     /// filed on a pinboard don't count and are never removed.
     func trimClipboardHistory(undoLimit: Int? = nil) {
         let snapshot = clipboardItems
-        let kept = ClipboardHistory.trimmed(clipboardItems, limit: clipboardHistoryLimit)
+        let kept = ClipboardHistory.trimmed(clipboardItems, limit: ClipboardSettings.shared.historyLimit)
         guard kept.count != clipboardItems.count else { return }
         clipboardItems = kept
         // Lowering the limit in Settings drops clips in one go; Undo puts
         // back both the limit and the clips.
-        if let undoLimit, undoLimit > clipboardHistoryLimit {
+        if let undoLimit, undoLimit > ClipboardSettings.shared.historyLimit {
             let keptIDs = Set(kept.map(\.id))
             let removed = Set(snapshot.map(\.id)).subtracting(keptIDs)
             showNotification(
@@ -110,7 +110,7 @@ extension AppState {
                 actionTitle: "Undo",
                 action: {
                     let state = AppState.shared
-                    state.clipboardHistoryLimit = undoLimit
+                    ClipboardSettings.shared.historyLimit = undoLimit
                     state.restoreClipboardItems(snapshot, removed: removed)
                 }
             )
@@ -130,7 +130,7 @@ extension AppState {
             )
             return false
         }
-        defer { if hapticFeedback {
+        defer { if GeneralSettings.shared.hapticFeedback {
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .default)
         } }
         return true
@@ -340,7 +340,7 @@ extension AppState {
     /// capture goes straight to the clipboard (and its history), as if copied.
     public func autoCopyRecognizedText(_ text: String) {
         let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard autoCopyOCRText, !clean.isEmpty else { return }
+        guard TraySettings.shared.autoCopyOCRText, !clean.isEmpty else { return }
         ClipboardService.shared.copyToPasteboard(text: clean)
         // Through the monitor's path so dedupe and the history limit apply.
         ClipboardService.shared.onNewItem?(ClipboardItem(content: clean, type: .text))

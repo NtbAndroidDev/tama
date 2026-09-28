@@ -63,7 +63,7 @@ public final class QuickshareService: ObservableObject {
                                              message: "Wait for the current upload to finish.", icon: "hourglass")
             return
         }
-        if AppState.shared.quickshareConfirm, !confirm(files) {
+        if FileActionSettings.shared.quickshareConfirm, !confirm(files) {
             AppState.shared.showNotification(appName: "Quickshare", title: "Upload cancelled", message: "Nothing was uploaded.",
                                              icon: "xmark.circle")
             return

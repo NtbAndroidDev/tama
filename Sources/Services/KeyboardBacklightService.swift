@@ -78,7 +78,7 @@ public final class KeyboardBacklightService {
         let step = fine ? MediaKeyMonitor.fineStep : MediaKeyMonitor.coarseStep
         let target = MediaKeyMonitor.steppedVolume(current, by: up ? step : -step, step: step)
         setBrightness(target)
-        if AppState.shared.showKeyboardBrightnessHUD {
+        if HUDSettings.shared.showKeyboardBrightnessHUD {
             AppState.shared.showHUD(.keyboard, value: target)
         }
         return true
@@ -107,7 +107,7 @@ public final class KeyboardBacklightService {
 
     /// The backlight keys changed the level in macOS's hands: show where it landed.
     public func presentHUD() {
-        guard AppState.shared.showKeyboardBrightnessHUD else { return }
+        guard HUDSettings.shared.showKeyboardBrightnessHUD else { return }
         // The backlight fades; read once it has moved.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
             guard let now = KeyboardBacklightService.shared.brightness else { return }

@@ -95,8 +95,9 @@ public struct DroppyShelfMetrics {
     /// `notificationMinWidth`, and this far below it (or this tall as a pill).
     public static let notificationExtraWidth: CGFloat = 180
     public static let notificationMinWidth: CGFloat = 420
-    public static let notificationDrop: CGFloat = 48
-    public static let notificationPillHeight: CGFloat = 56
+    /// Tall enough for a mirrored banner's three lines (app, title, preview).
+    public static let notificationDrop: CGFloat = 60
+    public static let notificationPillHeight: CGFloat = 68
     /// The Keep / Share / AirDrop / Convert tiles under the notch.
     public static let quickActionsHeight: CGFloat = 98
     /// Extra canvas around the island so the spring can overshoot unclipped.
@@ -221,7 +222,7 @@ public enum NowPlayingSize: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// What the metrics read. `AppState.nowPlayingSize` writes the same key.
+    /// What the metrics read. `MediaSettings.nowPlayingSize` writes the same key.
     static var stored: NowPlayingSize {
         NowPlayingSize(rawValue: UserDefaults.standard.string(forKey: key) ?? "") ?? .regular
     }

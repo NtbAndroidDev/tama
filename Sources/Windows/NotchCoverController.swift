@@ -27,7 +27,7 @@ public final class NotchCoverController {
     public func sync() {
         let state = AppState.shared
         var wanted = Set<CGDirectDisplayID>()
-        if state.hidePhysicalNotch {
+        if DisplaySettings.shared.hidePhysicalNotch {
             let fullscreen = ScreenStateService.shared.fullscreenDisplays
             for screen in NSScreen.screens {
                 let inset = screen.safeAreaInsets.top

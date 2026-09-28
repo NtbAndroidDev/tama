@@ -18,10 +18,9 @@ public final class DesktopSliderController {
     private init() {}
 
     public func sync() {
-        let state = AppState.shared
-        set(.volume, visible: state.desktopVolumeSlider)
+        set(.volume, visible: HUDSettings.shared.desktopVolumeSlider)
         // Only with a display Tama can dim.
-        set(.brightness, visible: state.desktopBrightnessSlider && BrightnessService.shared.canSetBrightness)
+        set(.brightness, visible: HUDSettings.shared.desktopBrightnessSlider && BrightnessService.shared.canSetBrightness)
     }
 
     private func set(_ kind: Kind, visible: Bool) {
@@ -73,6 +72,7 @@ private struct DesktopSliderView: View {
     let kind: DesktopSliderController.Kind
     @ObservedObject private var outputs = AudioOutputService.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @State private var brightness: Double = BrightnessService.shared.brightness ?? 0.5
     /// Made once rather than in `body`, where every redraw built and subscribed
     /// a fresh timer. Only the brightness slider needs one.
@@ -141,7 +141,7 @@ private struct DesktopSliderView: View {
         .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
         .clipShape(Capsule())
         .overlay(Capsule().strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5))
-        .tint(state.accentColor.color)
+        .tint(themeSettings.accentColor.color)
         .onReceive(ticks) { _ in
             // Brightness has no change notification; follow the keys and Control Center.
             guard let now = BrightnessService.shared.brightness, abs(now - brightness) > 0.005 else { return }

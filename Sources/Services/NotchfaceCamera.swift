@@ -65,7 +65,7 @@ public final class NotchfaceCamera: ObservableObject {
 
     /// The camera Settings picked, or the system default, or the first one.
     private var selectedDevice: AVCaptureDevice? {
-        let wanted = AppState.shared.notchfaceCamera
+        let wanted = NotchfaceSettings.shared.camera
         let devices = Self.discovery.devices
         if !wanted.isEmpty, let device = devices.first(where: { $0.uniqueID == wanted }) { return device }
         return AVCaptureDevice.default(for: .video) ?? devices.first
@@ -124,7 +124,7 @@ public final class NotchfaceCamera: ObservableObject {
 
     /// Picking another camera while live switches to it straight away.
     public func select(_ id: String) {
-        AppState.shared.notchfaceCamera = id
+        NotchfaceSettings.shared.camera = id
         if isRunning || isStarting {
             pipeline.stop()
             isRunning = false

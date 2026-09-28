@@ -50,6 +50,7 @@ final class CrashReportWindowController: NSObject, NSWindowDelegate {
 private struct CrashReportView: View {
     let close: () -> Void
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var themeSettings = ThemeSettings.shared
     @ObservedObject private var service = CrashReportService.shared
     @AppStorage(CrashReportService.promptKey) private var prompt = true
     @State private var report: CrashReport?
@@ -112,7 +113,7 @@ private struct CrashReportView: View {
         .padding(.bottom, 16)
         .frame(minWidth: 460, minHeight: 380)
         .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow).ignoresSafeArea())
-        .tint(state.accentColor.color)
+        .tint(themeSettings.accentColor.color)
         .onAppear { report = service.pending ?? service.latestReport() }
     }
 

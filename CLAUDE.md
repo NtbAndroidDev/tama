@@ -38,13 +38,14 @@ scripts/setup_signing.sh       # one-time: creates the "Tama Local Signing" iden
 
 **Lifecycle.** `DroppyApp` only declares a `Settings` scene. All real UI is custom `NSPanel`s created in `AppDelegate.applicationDidFinishLaunching`, which also starts every long-lived service (`XxxService.shared.start()`) and installs `ServicesProvider` (Finder › Services handlers; the selector names must match `NSMessage` in `Info.plist`).
 
-**State.** `AppState.shared` (`App/AppState.swift`) is the single `ObservableObject` that nearly every view and service reads and mutates. It holds:
+**State.** `AppState.shared` (`App/AppState.swift`) is the `ObservableObject` that nearly every view and service reads and mutates. It holds:
 - UI state: `isIslandExpanded`, `shelfPage`, `hud`, drag and quick-action state, `activeDropletID`, and similar.
 - Content: `shelfItems` (Tray), `baskets` (each floating Basket with its own files), `clipboardItems`, `pinboards`, `droplets`.
-- Settings, as `@AppStorage` properties. Some have `didSet` hooks that switch services on or off.
 - Island geometry (`islandSize`, `islandTopOffset`, `lanePillSize`, `showsLanePill`). This geometry is computed here, so the SwiftUI layout and the `NSPanel` frame and hit-testing agree.
 
-Stored properties (`@Published`, `@AppStorage`) must live in the class body in `AppState.swift`, because extensions can't hold them. Behaviour is split into extensions by area: `AppState+Geometry` (island shapes, screens), `+Persistence`, `+Tray`, `+Basket` (Baskets, and helpers that find held files on the Shelf or in any Basket), `+Clipboard` (history, pinboards), `+Undo` (undo banners), `+Notifications`, `+Pomodoro`, `+Droplets`. The level-HUD style accessor `hudStyle(for:)` is in `AppSettings.swift`.
+Stored properties (`@Published`) must live in the class body in `AppState.swift`, because extensions can't hold them. Behaviour is split into extensions by area: `AppState+Geometry` (island shapes, screens), `+Persistence`, `+Tray`, `+Basket` (Baskets, and helpers that find held files on the Shelf or in any Basket), `+Clipboard` (history, pinboards), `+Undo` (undo banners), `+Notifications`, `+Pomodoro`, `+Droplets`. The level-HUD style accessor `hudStyle(for:)` is in `AppSettings.swift`.
+
+**Settings** are not in `AppState`. Each area has its own store in `App/Settings/` (`ShelfSettings`, `ClipboardSettings`, `HUDSettings`, `MediaSettings`, `PomodoroSettings`, one per Droplet with settings, …), a `SettingsStore` subclass holding `@AppStorage` properties whose `didSet` hooks switch services on or off. A view reads a store through its own `@ObservedObject private var xxxSettings = XxxSettings.shared`, not through `AppState`, so it only redraws when that area changes. Non-view code uses `XxxSettings.shared`. To add a setting, put the property in its area's store and add its key to the store's `keys` and to `AppState.settingsKeys` (Reset, Export and Import walk that list; `SettingsStoreTests` checks the two agree). A new feature with preferences gets its own store and a line in `SettingsStoreTests.storeKeys`. `AppState` still republishes on every setting change for the views that haven't moved to the stores yet, so don't rely on that in new code.
 
 **Sizes** all live in `App/Layout.swift`:
 - `DroppyShelfMetrics`: shelf and player widths, page heights, pill, HUD and banner sizes.

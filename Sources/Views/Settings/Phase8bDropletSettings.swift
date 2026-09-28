@@ -29,11 +29,11 @@ private func floatingButton(_ id: String) -> Binding<Bool> {
 // MARK: - TermiNotch
 
 struct TermiNotchDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var termiNotchSettings = TermiNotchSettings.shared
 
     var body: some View {
         Section {
-            Picker(selection: $state.termiNotchTerminalApp) {
+            Picker(selection: $termiNotchSettings.terminalApp) {
                 ForEach(TerminalApp.allCases) { app in
                     Text(app.isInstalled ? app.title : "\(app.title) (not installed)").tag(app)
                 }
@@ -46,14 +46,14 @@ struct TermiNotchDropletSettings: View {
             .settingsAnchor("droplet.termiNotch.app")
             InfoToggle("Show TermiNotch bar",
                        info: "Open TermiNotch as the quick command bar — one line to type a command over its last output — instead of the expanded full-shelf terminal. Switch any time with the buttons in TermiNotch.",
-                       isOn: $state.termiNotchQuickBar)
+                       isOn: $termiNotchSettings.quickBar)
                 .settingsAnchor("droplet.termiNotch.bar")
             InfoToggle("Tama prompt",
                        info: "zsh shows user@host ~ and a green $ after running your own .zshrc. Turn off to keep your own prompt. Applies to new tabs.",
-                       isOn: $state.termiNotchDroppyPrompt)
+                       isOn: $termiNotchSettings.droppyPrompt)
                 .settingsAnchor("droplet.termiNotch.prompt")
             LabeledContent("Text size") {
-                Stepper("\(Int(state.termiNotchFontSize)) pt", value: $state.termiNotchFontSize, in: 9...18, step: 1)
+                Stepper("\(Int(termiNotchSettings.fontSize)) pt", value: $termiNotchSettings.fontSize, in: 9...18, step: 1)
             }
             .settingsAnchor("droplet.termiNotch.fontSize")
             Toggle("Show TermiNotch as a floating button", isOn: floatingButton("termiNotch"))
@@ -70,7 +70,7 @@ struct TermiNotchDropletSettings: View {
 // MARK: - Meetings
 
 struct MeetingsDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var meetingSettings = MeetingSettings.shared
     @ObservedObject private var meetings = MeetingControlService.shared
 
     private var stateLine: String {
@@ -88,14 +88,17 @@ struct MeetingsDropletSettings: View {
             }
             InfoToggle("Show active call HUD",
                        info: "While a call is on: a green phone, the elapsed time and your live microphone level in the notch. Click it for the call controls.",
-                       isOn: $state.meetingCallHUD)
+                       isOn: $meetingSettings.callHUD)
                 .settingsAnchor("droplet.meetings.callHUD")
             InfoToggle("Live mic level",
                        info: "Moves the bars with your voice. Uses the microphone only during a call and only once Tama has Microphone access; nothing is recorded. Needs macOS 14.2 or later.",
-                       isOn: $state.meetingMicLevel)
+                       isOn: $meetingSettings.micLevel)
                 .settingsAnchor("droplet.meetings.micLevel")
-                .disabled(!state.meetingCallHUD)
-            if state.meetingCallHUD, state.meetingMicLevel, !MicLevelMeter.isAuthorized {
+                .disabled(!meetingSettings.callHUD)
+            if !meetingSettings.callHUD {
+                Text("Needs Show active call HUD.").font(.caption).foregroundStyle(.secondary)
+            }
+            if meetingSettings.callHUD, meetingSettings.micLevel, !MicLevelMeter.isAuthorized {
                 HStack {
                     Text("Microphone access is needed for the level.").font(.caption).foregroundStyle(.secondary)
                     Spacer()
@@ -111,20 +114,20 @@ struct MeetingsDropletSettings: View {
         Section {
             InfoToggle("Pause media during meetings",
                        info: "Pauses music when a meeting starts.",
-                       isOn: $state.meetingPauseMedia)
+                       isOn: $meetingSettings.pauseMedia)
                 .settingsAnchor("droplet.meetings.pause")
-            Picker("Pause", selection: $state.meetingPauseTrigger) {
+            Picker("Pause when", selection: $meetingSettings.pauseTrigger) {
                 ForEach(MeetingPauseTrigger.allCases) { Text($0.title).tag($0) }
             }
             .settingsAnchor("droplet.meetings.pauseTrigger")
-            .disabled(!state.meetingPauseMedia)
-            if state.meetingPauseTrigger == .micUnmuted {
+            .disabled(!meetingSettings.pauseMedia)
+            if meetingSettings.pauseMedia, meetingSettings.pauseTrigger == .micUnmuted {
                 Text("Pauses media when mic is unmuted, and plays it again when you mute.")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Toggle("Resume media after meeting", isOn: $state.meetingResumeMedia)
+            Toggle("Resume media after meeting", isOn: $meetingSettings.resumeMedia)
                 .settingsAnchor("droplet.meetings.resume")
-                .disabled(!state.meetingPauseMedia)
+                .disabled(!meetingSettings.pauseMedia)
         } header: {
             Text("Media")
         }
@@ -134,7 +137,7 @@ struct MeetingsDropletSettings: View {
 // MARK: - Notification HUD
 
 struct NotificationHUDDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var notificationHUDSettings = NotificationHUDSettings.shared
     @ObservedObject private var service = NotificationHUDService.shared
 
     private static let durations: [(Double, String)] = [(3, "3 seconds"), (5, "5 seconds"), (8, "8 seconds"), (12, "12 seconds"), (20, "20 seconds")]
@@ -164,7 +167,7 @@ struct NotificationHUDDropletSettings: View {
                 Text("Required to read notifications. Turn on Tama in System Settings › Privacy & Security › Full Disk Access (add it with + if it isn't listed), then come back.")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Picker(selection: $state.notificationHUDDuration) {
+            Picker(selection: $notificationHUDSettings.duration) {
                 ForEach(Self.durations, id: \.0) { Text($0.1).tag($0.0) }
             } label: {
                 HStack(spacing: 6) {
@@ -175,15 +178,15 @@ struct NotificationHUDDropletSettings: View {
             .settingsAnchor("droplet.notifications.duration")
             InfoToggle("App icon and notification preview",
                        info: "Show the title and text. Off, the notch only says which app has a new notification.",
-                       isOn: $state.notificationHUDPreview)
+                       isOn: $notificationHUDSettings.preview)
                 .settingsAnchor("droplet.notifications.preview")
             InfoToggle("Burst notifications",
                        info: "Three or more arriving together fold into one summary instead of queueing one by one.",
-                       isOn: $state.notificationHUDBurst)
+                       isOn: $notificationHUDSettings.burst)
                 .settingsAnchor("droplet.notifications.burst")
             InfoToggle("Show filter choices",
                        info: "Shows filter choices above the notifications in the widget.",
-                       isOn: $state.notificationHUDShowFilters)
+                       isOn: $notificationHUDSettings.showFilters)
                 .settingsAnchor("droplet.notifications.filters")
             Toggle("Show Notifications as a floating button", isOn: floatingButton("notifications"))
                 .settingsAnchor("droplet.notifications.floating")
@@ -197,11 +200,11 @@ struct NotificationHUDDropletSettings: View {
         Section {
             InfoToggle("Quick reply",
                        info: "Quick reply for supported messaging apps. iMessage/SMS replies are sent through Messages (it asks once for permission to control Messages). WhatsApp and Telegram can't be sent to by other apps: your reply is copied and the app opens.",
-                       isOn: $state.notificationHUDQuickReply)
+                       isOn: $notificationHUDSettings.quickReply)
                 .settingsAnchor("droplet.notifications.reply")
-            Toggle("Auto-hide after replying", isOn: $state.notificationHUDHideAfterReply)
+            Toggle("Auto-hide after replying", isOn: $notificationHUDSettings.hideAfterReply)
                 .settingsAnchor("droplet.notifications.hideAfterReply")
-                .disabled(!state.notificationHUDQuickReply)
+                .disabled(!notificationHUDSettings.quickReply)
         } header: {
             Text("Reply")
         }
@@ -260,18 +263,18 @@ struct NotificationHUDDropletSettings: View {
 // MARK: - Agents
 
 struct AgentsDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var agentsSettings = AgentsSettings.shared
     @ObservedObject private var agents = AgentActivityService.shared
     @State private var confirmsRemoveHooks = false
 
     var body: some View {
         Section {
-            Toggle(isOn: $state.agentsClaude) { Label("Claude Code", systemImage: AgentKind.claude.symbol) }
+            Toggle(isOn: $agentsSettings.claude) { Label("Claude Code", systemImage: AgentKind.claude.symbol) }
                 .settingsAnchor("droplet.agents.claude")
             LabeledContent("Claude Code hooks") {
                 if agents.claudeHooksInstalled {
                     HStack {
-                        Label("Installed", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                        Label("Installed", systemImage: "checkmark.circle.fill").foregroundStyle(DS.Palette.success)
                         Button("Remove…") { confirmsRemoveHooks = true }
                     }
                 } else {
@@ -279,15 +282,18 @@ struct AgentsDropletSettings: View {
                 }
             }
             .settingsAnchor("droplet.agents.hooks")
-            .disabled(!state.agentsClaude)
+            .disabled(!agentsSettings.claude)
             .confirmationDialog("Remove Tama's Claude Code hooks?", isPresented: $confirmsRemoveHooks) {
                 Button("Remove Hooks", role: .destructive) { agents.removeClaudeHooks() }
             } message: {
                 Text("Tama's entries come out of ~/.claude/settings.json and Claude Code stops reporting to the notch. Your other settings are left as they are.")
             }
-            Toggle(isOn: $state.agentsCodex) { Label("Codex", systemImage: AgentKind.codex.symbol) }
+            if !agentsSettings.claude {
+                Text("Turn on Claude Code to install its hooks.").font(.caption).foregroundStyle(.secondary)
+            }
+            Toggle(isOn: $agentsSettings.codex) { Label("Codex", systemImage: AgentKind.codex.symbol) }
                 .settingsAnchor("droplet.agents.codex")
-            Toggle(isOn: $state.agentsCursor) { Label("Cursor", systemImage: AgentKind.cursor.symbol) }
+            Toggle(isOn: $agentsSettings.cursor) { Label("Cursor", systemImage: AgentKind.cursor.symbol) }
                 .settingsAnchor("droplet.agents.cursor")
             if let error = agents.lastError {
                 Text(error).font(.caption).foregroundStyle(.red)
@@ -301,11 +307,11 @@ struct AgentsDropletSettings: View {
         Section {
             InfoToggle("Show in the notch",
                        info: "The working agent's glyph and a spinner in the resting notch.",
-                       isOn: $state.agentsShowInNotch)
+                       isOn: $agentsSettings.showInNotch)
                 .settingsAnchor("droplet.agents.notch")
             InfoToggle("Tell me when it's done",
                        info: "A banner when an agent finishes, stops, or waits for you (Background task completed / failed).",
-                       isOn: $state.agentsNotifyDone)
+                       isOn: $agentsSettings.notifyDone)
                 .settingsAnchor("droplet.agents.done")
         } header: {
             Text("Notch")
@@ -317,12 +323,12 @@ struct AgentsDropletSettings: View {
 // MARK: - Notchface
 
 struct NotchfaceDropletSettings: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var notchfaceSettings = NotchfaceSettings.shared
     @ObservedObject private var camera = NotchfaceCamera.shared
 
     var body: some View {
         Section {
-            Picker(selection: $state.notchfaceCamera) {
+            Picker(selection: $notchfaceSettings.camera) {
                 Text("System default").tag("")
                 ForEach(camera.cameras) { Text($0.name).tag($0.id) }
             } label: {
@@ -332,7 +338,7 @@ struct NotchfaceDropletSettings: View {
                 }
             }
             .settingsAnchor("droplet.notchface.camera")
-            Toggle("Mirror the preview", isOn: $state.notchfaceMirror)
+            Toggle("Mirror the preview", isOn: $notchfaceSettings.mirror)
                 .settingsAnchor("droplet.notchface.mirror")
             LabeledContent("Camera access") {
                 switch camera.access {

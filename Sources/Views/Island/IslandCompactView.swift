@@ -9,6 +9,11 @@ public struct IslandCompactView: View {
     // High Alert isn't observed here: AppState forwards its on/off flips, and
     // the service's once-a-second countdown would redraw this whole view.
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var hudSettings = HUDSettings.shared
+    @ObservedObject private var mediaSettings = MediaSettings.shared
+    @ObservedObject private var meetingSettings = MeetingSettings.shared
+    @ObservedObject private var pomodoroSettings = PomodoroSettings.shared
+    @ObservedObject private var shelfSettings = ShelfSettings.shared
     @ObservedObject private var media = MediaService.shared
     @ObservedObject private var live = LiveActivityCenter.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -21,14 +26,14 @@ public struct IslandCompactView: View {
     /// Beats music: a meeting about to start, a charger just plugged in —
     /// unless Settings › HUDs puts music first.
     private var urgent: LiveActivity? {
-        if state.compactHUDPriority == .mediaFirst, track.hasTrack { return nil }
+        if hudSettings.compactHUDPriority == .mediaFirst, track.hasTrack { return nil }
         return live.top(.urgent)
     }
     /// Shown only when nothing else wants the wings.
     private var ambient: LiveActivity? { live.top(.ambient) }
     private var hasNotch: Bool { state.notchHeight(on: displayID) > 0 }
     /// Settings › Pomodoro › Keep timer visible: the countdown outranks music and the Tray.
-    private var pomodoroFirst: Bool { state.pomodoroKeepVisible && state.isPomodoroActive }
+    private var pomodoroFirst: Bool { pomodoroSettings.keepVisible && state.isPomodoroActive }
 
     public var body: some View {
         ZStack {
@@ -116,16 +121,16 @@ public struct IslandCompactView: View {
     /// music plays.
     private func openShelf() {
         // Settings › Shelf › The Shelf is off: the notch doesn't open.
-        guard state.shelfEnabled else { return }
+        guard shelfSettings.isEnabled else { return }
         DroppyAudio.playTick()
         // Meetings' call HUD: a click on it opens the call controls.
-        if state.meetingCallHUD, MeetingControlService.shared.callState.isInCall,
+        if meetingSettings.callHUD, MeetingControlService.shared.callState.isInCall,
            state.droplets.contains(where: { $0.id == "meetings" && $0.isEnabled }) {
             state.open(.widgets)
             state.activeDropletID = "meetings"
-        } else if state.notchClickOpensMedia, track.hasTrack {
+        } else if mediaSettings.notchClickOpensMedia, track.hasTrack {
             state.open(.home)
-        } else if let page = state.defaultShelfPage.page {
+        } else if let page = shelfSettings.defaultPage.page {
             state.open(page)
         } else {
             state.setIslandExpanded(true)
@@ -211,17 +216,17 @@ public struct IslandCompactView: View {
     private func handleScroll(_ deltaY: CGFloat) {
         guard abs(deltaY) > 0.3 else { return }
         if NSEvent.modifierFlags.contains(.option) {
-            guard state.scrollToChangeBrightness else { return }
+            guard hudSettings.scrollToChangeBrightness else { return }
             let display = BrightnessService.shared
             guard display.canSetBrightness, let level = display.level else { return }
             // The panel fades towards the new level, so show the target, not a read-back.
             let target = min(max(level + Double(deltaY) * 0.01, 0), 1)
             display.setBrightness(target)
             // The HUD settings only hide the feedback; the scroll still adjusts.
-            if state.showBrightnessHUD { state.showHUD(.brightness, value: target) }
+            if hudSettings.showBrightnessHUD { state.showHUD(.brightness, value: target) }
             return
         }
-        guard state.scrollToChangeVolume else { return }
+        guard hudSettings.scrollToChangeVolume else { return }
         let outputs = AudioOutputService.shared
         // No software volume on this output (HDMI, some USB): don't fake a change.
         guard outputs.canSetVolume else { return }

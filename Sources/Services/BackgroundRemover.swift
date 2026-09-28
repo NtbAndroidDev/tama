@@ -15,9 +15,8 @@ public enum BackgroundRemover {
     }
 
     @MainActor static var currentStyle: Style {
-        let state = AppState.shared
-        return Style(background: state.cutoutBackground, padding: state.cutoutPadding,
-                     cornerRadius: state.cutoutCornerRadius, shadow: state.cutoutShadow)
+        return Style(background: FileActionSettings.shared.cutoutBackground, padding: FileActionSettings.shared.cutoutPadding,
+                     cornerRadius: FileActionSettings.shared.cutoutCornerRadius, shadow: FileActionSettings.shared.cutoutShadow)
     }
 
     public static func removeBackground(_ url: URL, style: Style) throws -> URL {

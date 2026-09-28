@@ -7,6 +7,7 @@ import UniformTypeIdentifiers
 /// other corner switches stacks; tags in use can filter the rail.
 public struct TrayPage: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var traySettings = TraySettings.shared
     @State private var selection = Set<UUID>()
     /// Last plainly clicked tile: shift-click selects the run from here, and
     /// the arrow keys move from here.
@@ -25,7 +26,7 @@ public struct TrayPage: View {
     /// The files on show: the current stack, narrowed by the tag filter.
     private var visibleItems: [ShelfItem] {
         state.shelfItems.filter { item in
-            (!state.trayTwoStacks || item.stack == state.activeTrayStack)
+            (!traySettings.twoStacks || item.stack == state.activeTrayStack)
                 && (state.trayTagFilter.map { item.tags.contains($0) } ?? true)
         }
     }
@@ -191,7 +192,7 @@ public struct TrayPage: View {
 
     private var emptyTitle: String {
         if let tag = state.trayTagFilter, !state.shelfItems.isEmpty { return "No items with the \(tag) tag." }
-        if state.trayTwoStacks { return "Stack \(state.activeTrayStack + 1)" }
+        if traySettings.twoStacks { return "Stack \(state.activeTrayStack + 1)" }
         return "Tray"
     }
 
@@ -285,7 +286,7 @@ public struct TrayPage: View {
                                 dragURLs: { dragURLs(for: item) },
                                 menu: { menu(for: item) },
                                 // Handed in so a tile needn't observe AppState itself.
-                                expiryInterval: state.trayExpiry.interval,
+                                expiryInterval: traySettings.expiry.interval,
                                 tagColors: tagColors(for: item)
                             )
                             .transition(DS.Motion.transition(reduceMotion, .scale(scale: 0.8).combined(with: .opacity)))
@@ -360,12 +361,12 @@ public struct TrayPage: View {
     // MARK: Stacks and tags
 
     private var showsFilters: Bool {
-        state.trayTwoStacks || !state.shelfTagsInUse.isEmpty
+        traySettings.twoStacks || !state.shelfTagsInUse.isEmpty
     }
 
     private var filters: some View {
         HStack(spacing: 6) {
-            if state.trayTwoStacks {
+            if traySettings.twoStacks {
                 // Both stacks counted in one pass over the Tray.
                 let secondCount = state.shelfItems.reduce(0) { $1.stack == 1 ? $0 + 1 : $0 }
                 let counts = [state.shelfItems.count - secondCount, secondCount]
@@ -456,7 +457,7 @@ public struct TrayPage: View {
                         draggedIDs = Set(picked.map(\.id))
                         return picked.map(\.url)
                     }) { accepted in
-                        guard accepted, state.removeOnDragOut else { return }
+                        guard accepted, traySettings.removeOnDragOut else { return }
                         withAnimation(DS.Motion.respecting(reduceMotion, DS.Motion.fluid)) { state.removeShelfItemsWithUndo(ids: draggedIDs) }
                     }
                 }
@@ -647,7 +648,7 @@ public struct TrayFileTile: View {
     }
 
     private var expiresSoon: Bool {
-        surface == .tray && item.expiresSoon(after: expiryInterval ?? state.trayExpiry.interval, now: now)
+        surface == .tray && item.expiresSoon(after: expiryInterval ?? TraySettings.shared.expiry.interval, now: now)
     }
 
     private var tagColors: [Color] {
@@ -697,7 +698,7 @@ public struct TrayFileTile: View {
                 onHover: { isHovered = $0 },
                 menu: { menu?() ?? HeldItemsMenu.build(.init(items: [item], surface: .shelf, onPreview: { _ in onPreview() })) },
                 onDragEnded: { accepted in
-                    guard accepted, state.removeOnDragOut else { return }
+                    guard accepted, TraySettings.shared.removeOnDragOut else { return }
                     // Everything the drag carried (the selection it was part of).
                     let urls = Set((dragURLs?() ?? [item.url]).map(\.standardizedFileURL))
                     let held = state.shelfItems + state.baskets.flatMap(\.items)

@@ -8,6 +8,7 @@ struct LocalSendConsoleView: View {
 
     @ObservedObject private var service = LocalSendService.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var localSendSettings = LocalSendSettings.shared
     @ObservedObject private var connectivity = ConnectivityService.shared
     @State private var isTargeted = false
 
@@ -82,7 +83,7 @@ struct LocalSendConsoleView: View {
 
     private var statusColor: Color {
         switch service.receiverState {
-        case .running: state.localSendReceiveMode == .off ? DS.Palette.warning : DS.Palette.success
+        case .running: localSendSettings.receiveMode == .off ? DS.Palette.warning : DS.Palette.success
         case .starting: DS.Palette.info
         case .failed: DS.Palette.danger
         case .off: DS.Palette.textTertiary
@@ -96,9 +97,9 @@ struct LocalSendConsoleView: View {
         case let .failed(message): return message
         case .running:
             if !connectivity.isOnline { return "Same network, no internet — nearby transfer still works." }
-            let visibility = state.localSendVisible ? "Visible to other devices" : "Hidden from other devices"
-            let receive = state.localSendReceiveMode == .off ? "not receiving" : "receiving from \(state.localSendReceiveMode.title.lowercased())"
-            return "\(visibility) · \(receive)\(state.localSendEncrypted ? " · Encrypted (HTTPS)" : "")"
+            let visibility = localSendSettings.isVisible ? "Visible to other devices" : "Hidden from other devices"
+            let receive = localSendSettings.receiveMode == .off ? "not receiving" : "receiving from \(localSendSettings.receiveMode.title.lowercased())"
+            return "\(visibility) · \(receive)\(localSendSettings.isEncrypted ? " · Encrypted (HTTPS)" : "")"
         }
     }
 
@@ -236,7 +237,7 @@ struct LocalSendConsoleView: View {
     private func offerSummary(_ offer: LocalSendService.Offer) -> String {
         let count = offer.files.count
         let files = "\(count) file\(count == 1 ? "" : "s") · \(LocalSendService.readable(offer.totalBytes))"
-        if !state.localSendPIN.trimmingCharacters(in: .whitespaces).isEmpty {
+        if !localSendSettings.pin.trimmingCharacters(in: .whitespaces).isEmpty {
             return offer.fetched.isEmpty ? "\(files) · PIN required" : "\(offer.fetched.count) downloaded · PIN required"
         }
         return offer.fetched.isEmpty ? files : "\(offer.fetched.count) of \(count) downloaded · \(files)"

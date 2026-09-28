@@ -6,6 +6,7 @@ import SwiftUI
 struct NotificationHUDConsoleView: View {
     @ObservedObject private var service = NotificationHUDService.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var notificationHUDSettings = NotificationHUDSettings.shared
     @State private var filterApp: String?
     @State private var draft = ""
     @State private var isSending = false
@@ -60,7 +61,7 @@ struct NotificationHUDConsoleView: View {
                     }
                 }
             }
-            if state.notificationHUDShowFilters, Set(service.recent.map(\.bundleID)).count > 1 { filters }
+            if notificationHUDSettings.showFilters, Set(service.recent.map(\.bundleID)).count > 1 { filters }
             if shown.isEmpty {
                 DroppyEmptyState(systemName: "bell", title: "No recent notifications yet",
                                  subtitle: "New notifications show up in the notch and stay here until you quit.")
@@ -125,7 +126,7 @@ struct NotificationHUDConsoleView: View {
             }
             .accessibilityElement(children: .combine)
             .help([note.title, note.preview].filter { !$0.isEmpty }.joined(separator: "\n"))
-            if state.notificationHUDQuickReply, note.replyKind != .none {
+            if notificationHUDSettings.quickReply, note.replyKind != .none {
                 DroppyIconButton("arrowshape.turn.up.left.fill", size: 24, isActive: service.replyTargetID == note.id,
                                  help: service.replyTargetID == note.id ? "Close the reply" : "Reply") { toggleReply(note) }
             }
@@ -213,11 +214,11 @@ struct NotificationHUDConsoleView: View {
                 service.replyTargetID = nil
                 DroppyAudio.playTick()
                 state.showNotification(appName: "Messages", title: "Reply sent", message: text, icon: "paperplane.fill", duration: 2)
-                if state.notificationHUDHideAfterReply { state.setIslandExpanded(false) }
+                if notificationHUDSettings.hideAfterReply { state.setIslandExpanded(false) }
             case let .copiedAndOpened(message):
                 draft = ""
                 replyNote = message
-                if state.notificationHUDHideAfterReply { state.setIslandExpanded(false) }
+                if notificationHUDSettings.hideAfterReply { state.setIslandExpanded(false) }
             case let .failed(message):
                 replyNote = message
             }

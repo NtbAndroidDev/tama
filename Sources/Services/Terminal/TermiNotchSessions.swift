@@ -279,7 +279,7 @@ public final class TermiNotchSessions: ObservableObject {
     public func openInTerminalApp() {
         let folder = active?.directory ?? rememberedDirectory
         remember(directory: folder)
-        var app = AppState.shared.termiNotchTerminalApp
+        var app = TermiNotchSettings.shared.terminalApp
         if !app.isInstalled {
             AppState.shared.showNotification(appName: "TermiNotch", title: "\(app.title) isn't installed",
                                              message: "Opening Terminal instead. Pick another app in the TermiNotch settings.",
@@ -321,7 +321,7 @@ public final class TermiNotchSessions: ObservableObject {
         environment.removeValue(forKey: "XPC_SERVICE_NAME")
         // zsh: Tama's prompt (user@host ~ / green $) after the user's own
         // startup files, unless Settings turns it off.
-        if shellName == "zsh", AppState.shared.termiNotchDroppyPrompt, let dotdir = zshDotDirectory() {
+        if shellName == "zsh", TermiNotchSettings.shared.droppyPrompt, let dotdir = zshDotDirectory() {
             if let user = environment["ZDOTDIR"] { environment["DROPPY_USER_ZDOTDIR"] = user }
             environment["ZDOTDIR"] = dotdir
         }

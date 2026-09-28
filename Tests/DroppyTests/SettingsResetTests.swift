@@ -15,7 +15,7 @@ import Testing
     }
 
     /// Settings a service names through its own constant are easy to forget,
-    /// because they never appear as an `@AppStorage` literal in AppState.
+    /// because they never appear as an `@AppStorage` literal in a settings store.
     /// Reset, export and import all walk `settingsKeys`, so they belong there.
     @Test @MainActor func keysDeclaredByServicesAreRegistered() {
         let keys = Set(AppState.settingsKeys)
@@ -50,13 +50,13 @@ import Testing
 /// Reset to Defaults doesn't re-arm it while a hard reset does).
 @Suite struct CollapseDelayMigrationTests {
     @Test @MainActor func aShortDelayIsRaisedToTheNewDefault() {
-        #expect(AppState.raisedCollapseDelay(from: 0.10) == AppState.defaultAutoHideDelay)
-        #expect(AppState.raisedCollapseDelay(from: 0.15) == AppState.defaultAutoHideDelay)
-        #expect(AppState.raisedCollapseDelay(from: 0.39) == AppState.defaultAutoHideDelay)
+        #expect(AppState.raisedCollapseDelay(from: 0.10) == GeneralSettings.defaultAutoHideDelay)
+        #expect(AppState.raisedCollapseDelay(from: 0.15) == GeneralSettings.defaultAutoHideDelay)
+        #expect(AppState.raisedCollapseDelay(from: 0.39) == GeneralSettings.defaultAutoHideDelay)
     }
 
     @Test @MainActor func aDeliberatelyLongerDelayIsLeftAlone() {
-        #expect(AppState.raisedCollapseDelay(from: AppState.defaultAutoHideDelay) == nil)
+        #expect(AppState.raisedCollapseDelay(from: GeneralSettings.defaultAutoHideDelay) == nil)
         #expect(AppState.raisedCollapseDelay(from: 1.0) == nil)
         #expect(AppState.raisedCollapseDelay(from: 3.0) == nil)
     }

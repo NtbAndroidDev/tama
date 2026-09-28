@@ -69,11 +69,11 @@ public enum DS {
     }
 
     // MARK: Accent (user-configurable, resolved at draw time)
-    @MainActor public static var accent: Color { AppState.shared.accentColor.color }
-    @MainActor public static var accentSoft: Color { AppState.shared.accentColor.color.opacity(0.18) }
-    @MainActor public static var accentHairline: Color { AppState.shared.accentColor.color.opacity(0.45) }
+    @MainActor public static var accent: Color { ThemeSettings.shared.accentColor.color }
+    @MainActor public static var accentSoft: Color { ThemeSettings.shared.accentColor.color.opacity(0.18) }
+    @MainActor public static var accentHairline: Color { ThemeSettings.shared.accentColor.color.opacity(0.45) }
     @MainActor public static var glow: Color {
-        AppState.shared.accentColor.color.opacity(0.32 * AppState.shared.borderGlowIntensity)
+        ThemeSettings.shared.accentColor.color.opacity(0.32 * ThemeSettings.shared.borderGlowIntensity)
     }
 
     // MARK: Motion

@@ -82,7 +82,7 @@ public final class AudioOutputService: ObservableObject {
 
     /// Shows the current level; muted crosses the icon out and dims the meter.
     public func presentHUD() {
-        guard AppState.shared.showVolumeHUD else { return }
+        guard HUDSettings.shared.showVolumeHUD else { return }
         readVolume()
         guard canSetVolume else { return }
         let device = devices.first { $0.id == currentDeviceID }
@@ -135,7 +135,7 @@ public final class AudioOutputService: ObservableObject {
     private func keepSoundOnThisMac() {
         let ids = Set(devices.map(\.id))
         defer { knownDeviceIDs = ids }
-        guard AppState.shared.alwaysUseBuiltInSpeakers, let known = knownDeviceIDs,
+        guard HUDSettings.shared.alwaysUseBuiltInSpeakers, let known = knownDeviceIDs,
               !ids.subtracting(known).isEmpty,
               let builtIn = devices.first(where: { $0.transport == kAudioDeviceTransportTypeBuiltIn }),
               currentDeviceID != builtIn.id else { return }
@@ -148,7 +148,7 @@ public final class AudioOutputService: ObservableObject {
     private func announceWirelessChanges() {
         let current = Dictionary(devices.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         defer { knownDevices = current }
-        guard let known = knownDevices, AppState.shared.showDeviceAlerts else { return }
+        guard let known = knownDevices, HUDSettings.shared.showDeviceAlerts else { return }
         let wireless: Set<UInt32> = [kAudioDeviceTransportTypeBluetooth, kAudioDeviceTransportTypeBluetoothLE, kAudioDeviceTransportTypeAirPlay]
         if let joined = devices.first(where: { known[$0.id] == nil && wireless.contains($0.transport) }) {
             LiveActivityCenter.shared.post(LiveActivity(

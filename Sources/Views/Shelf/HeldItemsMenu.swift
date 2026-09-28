@@ -209,11 +209,11 @@ enum HeldItemsMenu {
         }
         switch context.surface {
         case .shelf:
-            if state.trayTwoStacks {
+            if TraySettings.shared.twoStacks {
                 let target = items.allSatisfy { $0.stack == 1 } ? 0 : 1
                 menu.add("Move to Stack \(target + 1)\(count)", symbol: "square.stack") { state.moveToStack(ids, stack: target) }
             }
-            if state.basketMode == .multi, state.baskets.count > 1 {
+            if BasketSettings.shared.mode == .multi, state.baskets.count > 1 {
                 menu.addSubmenu("Move to Basket\(count)", symbol: "basket") { sub in
                     for basket in state.baskets {
                         sub.add("\(basket.colorName) Basket (\(basket.items.count))", image: tagDot(basket.color)) {
@@ -227,13 +227,13 @@ enum HeldItemsMenu {
                 menu.add("Move to Basket\(count)", symbol: "basket") { state.moveToBasket(ids, basketID: state.primaryBasketID) }
             }
         case .basket(let basketID):
-            if state.basketSecondBucket {
+            if BasketSettings.shared.secondBucket {
                 let target = items.allSatisfy { $0.stack == 1 } ? 0 : 1
                 menu.add(target == 1 ? "Move to Second Bucket\(count)" : "Move to Main Bucket\(count)", symbol: "tray.2") {
                     state.moveToStack(ids, stack: target)
                 }
             }
-            if state.basketMode == .multi, state.baskets.count > 1 {
+            if BasketSettings.shared.mode == .multi, state.baskets.count > 1 {
                 menu.addSubmenu("Move to Basket", symbol: "basket") { sub in
                     for basket in state.baskets where basket.id != basketID {
                         sub.add("\(basket.colorName) Basket (\(basket.items.count))", image: tagDot(basket.color)) {

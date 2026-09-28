@@ -20,7 +20,7 @@ public final class CapturePreviewController {
 
     /// Shows `url` in the corner. `copied` adds the "Copied" pill.
     public func show(url: URL, copied: Bool) {
-        guard AppState.shared.showCapturePreview, let image = NSImage(contentsOf: url) else { return }
+        guard CaptureSettings.shared.showsPreview, let image = NSImage(contentsOf: url) else { return }
         model.url = url
         model.image = image
         model.copied = copied
@@ -33,7 +33,7 @@ public final class CapturePreviewController {
         let pointer = NSEvent.mouseLocation
         let visible = (NSScreen.screens.first(where: { NSMouseInRect(pointer, $0.frame, false) }) ?? NSScreen.main)?.visibleFrame ?? .zero
         let origin = Self.origin(for: size, on: visible, pointer: pointer,
-                                 placement: AppState.shared.capturePreviewPlacement)
+                                 placement: CaptureSettings.shared.previewPlacement)
         panel.setFrame(NSRect(origin: origin, size: size), display: true)
         panel.alphaValue = 0
         panel.orderFrontRegardless()

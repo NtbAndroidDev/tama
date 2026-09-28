@@ -34,7 +34,7 @@ public final class BetterDisplayService: ObservableObject {
     public func refresh() {
         isInstalled = NSWorkspace.shared.urlForApplication(withBundleIdentifier: Self.bundleID) != nil
         lastCheck = Date()
-        guard isInstalled, AppState.shared.useBetterDisplay, let url = URL(string: Self.base + "/") else {
+        guard isInstalled, HUDSettings.shared.useBetterDisplay, let url = URL(string: Self.base + "/") else {
             isReachable = false
             return
         }
@@ -48,7 +48,7 @@ public final class BetterDisplayService: ObservableObject {
     /// Whether brightness keys for this screen should go to BetterDisplay.
     public func routes(_ screen: NSScreen) -> Bool {
         if let lastCheck, Date().timeIntervalSince(lastCheck) > 30 { refresh() }
-        return AppState.shared.useBetterDisplay && isReachable && !screen.isBuiltIn
+        return HUDSettings.shared.useBetterDisplay && isReachable && !screen.isBuiltIn
     }
 
     /// Steps the display's brightness through BetterDisplay and shows the HUD.
@@ -70,7 +70,7 @@ public final class BetterDisplayService: ObservableObject {
             let target = MediaKeyMonitor.steppedVolume(current, by: delta, step: step)
             BetterDisplayService.shared.levels[name] = (target, Date())
             await set(target, named: name)
-            if AppState.shared.showBrightnessHUD { AppState.shared.showHUD(.brightness, value: target) }
+            if HUDSettings.shared.showBrightnessHUD { AppState.shared.showHUD(.brightness, value: target) }
         }
     }
 

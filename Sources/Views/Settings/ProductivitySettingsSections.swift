@@ -5,7 +5,7 @@ import SwiftUI
 // MARK: - Tasks & Calendar
 
 struct TasksCalendarSettingsSection: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var calendarSettings = CalendarSettings.shared
     @ObservedObject private var calendar = CalendarService.shared
 
     private static let cleanupChoices: [(Int, String)] = [
@@ -24,23 +24,24 @@ struct TasksCalendarSettingsSection: View {
                 SettingsGroup {
                     SettingsRow("Show reminders & events", anchor: "shelf.tasks.show")
                     ToggleTiles([
-                        ToggleTile("Tasks", icon: "checklist", isOn: $state.tasksShowTasks),
-                        ToggleTile("Events", icon: "calendar", isOn: $state.tasksShowEvents),
+                        ToggleTile("Tasks", icon: "checklist", isOn: $calendarSettings.showTasks),
+                        ToggleTile("Events", icon: "calendar", isOn: $calendarSettings.showEvents),
                     ])
                     SettingsDivider()
                     SettingsToggleRow("Hide undated tasks",
-                                      subtitle: "Tasks without a due date stay in Reminders but leave the page.",
-                                      anchor: "shelf.tasks.hideUndated", isOn: $state.tasksHideUndated)
-                        .disabled(!state.tasksShowTasks)
-                        .opacity(state.tasksShowTasks ? 1 : 0.45)
+                                      subtitle: calendarSettings.showTasks
+                                        ? "Tasks without a due date stay in Reminders but leave the page."
+                                        : "Needs Tasks.",
+                                      anchor: "shelf.tasks.hideUndated", isOn: $calendarSettings.hideUndated)
+                        .settingsDisabled(!calendarSettings.showTasks)
                     SettingsDivider()
                     SettingsToggleRow("Week numbers", subtitle: "\u{201C}Sunday (wk. 9)\u{201D} in the day headers.",
-                                      anchor: "shelf.tasks.weekNumbers", isOn: $state.tasksWeekNumbers)
+                                      anchor: "shelf.tasks.weekNumbers", isOn: $calendarSettings.weekNumbers)
                     SettingsDivider()
                     SettingsRow("Remove completed tasks after",
                                 subtitle: "Ticked tasks stay struck through until then.",
                                 anchor: "shelf.tasks.cleanup") {
-                        Picker("Remove completed tasks after", selection: $state.tasksCleanupDelay) {
+                        Picker("Remove completed tasks after", selection: $calendarSettings.cleanupDelay) {
                             ForEach(Self.cleanupChoices, id: \.0) { Text($0.1).tag($0.0) }
                         }
                         .labelsHidden()
@@ -52,7 +53,7 @@ struct TasksCalendarSettingsSection: View {
                     SettingsRow("Default list for new tasks",
                                 subtitle: "A #List mention in the text wins over this.",
                                 anchor: "shelf.tasks.defaultList") {
-                        Picker("Default list for new tasks", selection: $state.tasksDefaultList) {
+                        Picker("Default list for new tasks", selection: $calendarSettings.defaultList) {
                             Text("Reminders default").tag("")
                             ForEach(calendar.reminderLists) { Text($0.title).tag($0.id) }
                         }
@@ -63,7 +64,7 @@ struct TasksCalendarSettingsSection: View {
                     SettingsRow("Default calendar",
                                 subtitle: "Choose where new events and meeting reminders are added.",
                                 anchor: "shelf.tasks.defaultCalendar") {
-                        Picker("Default calendar", selection: $state.tasksDefaultCalendar) {
+                        Picker("Default calendar", selection: $calendarSettings.defaultCalendar) {
                             Text("Calendar default").tag("")
                             ForEach(calendar.eventCalendars) { Text($0.title).tag($0.id) }
                         }
@@ -75,20 +76,20 @@ struct TasksCalendarSettingsSection: View {
                 SettingsGroup {
                     SummaryDisclosureRow("Calendars",
                                          subtitle: "Choose which Apple Calendar calendars are shown.",
-                                         done: calendar.eventCalendars.count - hiddenCount(state.tasksHiddenCalendars, in: calendar.eventCalendars),
+                                         done: calendar.eventCalendars.count - hiddenCount(calendarSettings.hiddenCalendars, in: calendar.eventCalendars),
                                          total: calendar.eventCalendars.count, unit: "shown",
                                          anchor: "shelf.tasks.calendars") {
-                        CalendarChecklist(items: calendar.eventCalendars, hidden: $state.tasksHiddenCalendars,
+                        CalendarChecklist(items: calendar.eventCalendars, hidden: $calendarSettings.hiddenCalendars,
                                           empty: calendar.hasEventAccess ? "No calendars found." : "Allow Calendar access to choose calendars.",
                                           needsAccess: calendar.hasEventAccess ? nil : .calendars)
                     }
                     SettingsDivider()
                     SummaryDisclosureRow("Reminder lists",
                                          subtitle: "Choose which Apple Reminders lists are shown in Tasks.",
-                                         done: calendar.reminderLists.count - hiddenCount(state.tasksHiddenLists, in: calendar.reminderLists),
+                                         done: calendar.reminderLists.count - hiddenCount(calendarSettings.hiddenLists, in: calendar.reminderLists),
                                          total: calendar.reminderLists.count, unit: "shown",
                                          anchor: "shelf.tasks.lists") {
-                        CalendarChecklist(items: calendar.reminderLists, hidden: $state.tasksHiddenLists,
+                        CalendarChecklist(items: calendar.reminderLists, hidden: $calendarSettings.hiddenLists,
                                           empty: calendar.hasReminderAccess ? "No reminder lists found." : "Allow Reminders access to choose lists.",
                                           needsAccess: calendar.hasReminderAccess ? nil : .reminders)
                     }
@@ -98,39 +99,39 @@ struct TasksCalendarSettingsSection: View {
                     SettingsToggleRow("Due alerts",
                                       subtitle: "A banner and a notch alert when a timed task is due, with a heads-up before.",
                                       help: "Configure due reminder alerts and the optional alert chime. Only tasks with a time alert; all-day tasks don't.",
-                                      anchor: "shelf.tasks.dueAlerts", isOn: $state.tasksDueAlerts)
+                                      anchor: "shelf.tasks.dueAlerts", isOn: $calendarSettings.dueAlerts)
                     SettingsDivider()
-                    SettingsRow("Heads-up", subtitle: "Heads-up before reminders are due.", anchor: "shelf.tasks.headsUp") {
-                        Picker("Heads-up", selection: $state.tasksHeadsUpMinutes) {
+                    SettingsRow("Heads-up", subtitle: calendarSettings.dueAlerts ? "Heads-up before reminders are due." : "Needs Due alerts.",
+                                anchor: "shelf.tasks.headsUp") {
+                        Picker("Heads-up", selection: $calendarSettings.headsUpMinutes) {
                             ForEach(Self.headsUpChoices, id: \.0) { Text($0.1).tag($0.0) }
                         }
                         .labelsHidden()
                         .fixedSize()
                     }
-                    .disabled(!state.tasksDueAlerts)
-                    .opacity(state.tasksDueAlerts ? 1 : 0.45)
+                    .settingsDisabled(!calendarSettings.dueAlerts)
                     SettingsDivider()
-                    SettingsToggleRow("Chime", subtitle: "Play a sound when a task is due.",
-                                      anchor: "shelf.tasks.chime", isOn: $state.tasksDueChime)
-                        .disabled(!state.tasksDueAlerts)
-                        .opacity(state.tasksDueAlerts ? 1 : 0.45)
+                    SettingsToggleRow("Chime", subtitle: calendarSettings.dueAlerts ? "Play a sound when a task is due." : "Needs Due alerts.",
+                                      anchor: "shelf.tasks.chime", isOn: $calendarSettings.dueChime)
+                        .settingsDisabled(!calendarSettings.dueAlerts)
                     SettingsDivider()
                     SettingsToggleRow("Event progress ring",
                                       subtitle: "Show a live event progress ring in the notch.",
-                                      anchor: "shelf.tasks.eventRing", isOn: $state.tasksEventRing)
+                                      anchor: "shelf.tasks.eventRing", isOn: $calendarSettings.eventRing)
                     SettingsDivider()
                     SettingsToggleRow("Next up in the notch",
                                       subtitle: "Show your next upcoming event or task.",
-                                      anchor: "shelf.tasks.nextEvent", isOn: $state.tasksNextEventWing)
+                                      anchor: "shelf.tasks.nextEvent", isOn: $calendarSettings.nextEventWing)
                     SettingsDivider()
                     SettingsToggleRow("Keep calendar window on top",
                                       subtitle: "The pop-out calendar floats above other windows.",
-                                      anchor: "shelf.tasks.popout", isOn: $state.calendarPopoutOnTop)
+                                      anchor: "shelf.tasks.popout", isOn: $calendarSettings.popoutOnTop)
                     SettingsDivider()
-                    SettingsRow("Pop out calendar") {
-                        Button(CalendarPopoutController.shared.isOpen ? "Bring to Front" : "Pop Out") {
-                            CalendarPopoutController.shared.bringToFront()
-                        }
+                    // A fixed label: the controller isn't observable, so an
+                    // "is it open" title would go stale.
+                    SettingsRow("Pop out calendar", subtitle: "A separate window with the month and your agenda.",
+                                anchor: "shelf.tasks.popoutOpen") {
+                        Button("Open Calendar Window") { CalendarPopoutController.shared.bringToFront() }
                     }
                 }
             }
@@ -202,6 +203,7 @@ private struct CalendarChecklist: View {
 
 struct PomodoroSettingsSection: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var pomodoroSettings = PomodoroSettings.shared
     @ObservedObject private var shortcuts = ShortcutsLibrary.shared
     @State private var confirmsMomentumReset = false
 
@@ -213,38 +215,37 @@ struct PomodoroSettingsSection: View {
         SettingsSection("Pomodoro", subtitle: "Set your timer with one slider directly in the shelf.") {
             SettingsGroup {
                 SettingsRow("Focus", anchor: "shelf.pomodoro") {
-                    Stepper("\(state.pomodoroWorkMinutes) min", value: $state.pomodoroWorkMinutes, in: 1...180)
+                    Stepper("\(pomodoroSettings.workMinutes) min", value: $pomodoroSettings.workMinutes, in: 1...180)
                 }
                 SettingsDivider()
                 SettingsRow("Break") {
-                    Stepper("\(state.pomodoroBreakMinutes) min", value: $state.pomodoroBreakMinutes, in: 1...60)
+                    Stepper("\(pomodoroSettings.breakMinutes) min", value: $pomodoroSettings.breakMinutes, in: 1...60)
                 }
                 SettingsDivider()
                 SettingsToggleRow("Enable ambient sound",
                                   subtitle: "Generated noise plays during focus sessions; the speaker button mutes it.",
-                                  anchor: "shelf.pomodoro.ambient", isOn: $state.pomodoroAmbientEnabled)
+                                  anchor: "shelf.pomodoro.ambient", isOn: $pomodoroSettings.ambientEnabled)
                 SettingsDivider()
-                SettingsRow("Ambient sound", subtitle: "Choose your preferred ambient sound.",
+                SettingsRow("Ambient sound",
+                            subtitle: pomodoroSettings.ambientEnabled ? "Choose your preferred ambient sound." : "Needs Enable ambient sound.",
                             anchor: "shelf.pomodoro.ambientSound") {
-                    Picker("Ambient sound", selection: $state.pomodoroAmbientSound) {
+                    Picker("Ambient sound", selection: $pomodoroSettings.ambientSound) {
                         ForEach(AmbientSoundService.Sound.allCases) { Text($0.title).tag($0.rawValue) }
                     }
                     .labelsHidden()
                     .fixedSize()
                 }
-                .disabled(!state.pomodoroAmbientEnabled)
-                .opacity(state.pomodoroAmbientEnabled ? 1 : 0.45)
+                .settingsDisabled(!pomodoroSettings.ambientEnabled)
                 SettingsDivider()
-                SettingsSlider("Volume", value: $state.pomodoroAmbientVolume, in: 0...1, step: 0.05, defaultValue: 0.5,
+                SettingsSlider("Volume", value: $pomodoroSettings.ambientVolume, in: 0...1, step: 0.05, defaultValue: 0.5,
                                anchor: "shelf.pomodoro.volume") { "\(Int($0 * 100))%" }
-                    .disabled(!state.pomodoroAmbientEnabled)
-                    .opacity(state.pomodoroAmbientEnabled ? 1 : 0.45)
+                    .settingsDisabled(!pomodoroSettings.ambientEnabled)
                 SettingsDivider()
                 SettingsToggleRow("Turn on Focus during sessions",
                                   subtitle: "Runs the \u{201C}\(AppState.focusOnShortcut)\u{201D} and \u{201C}\(AppState.focusOffShortcut)\u{201D} Shortcuts as sessions start and stop.",
                                   help: "macOS doesn't let apps switch Focus directly. In the Shortcuts app, make a shortcut named \u{201C}\(AppState.focusOnShortcut)\u{201D} with the action Set Focus › Do Not Disturb › On, and one named \u{201C}\(AppState.focusOffShortcut)\u{201D} that turns it Off.",
-                                  anchor: "shelf.pomodoro.focus", isOn: $state.pomodoroFocusShortcuts)
-                if state.pomodoroFocusShortcuts, !shortcuts.isLoading, !missingShortcuts.isEmpty {
+                                  anchor: "shelf.pomodoro.focus", isOn: $pomodoroSettings.focusShortcuts)
+                if pomodoroSettings.focusShortcuts, !shortcuts.isLoading, !missingShortcuts.isEmpty {
                     HStack {
                         SettingsNote("Create \(missingShortcuts.map { "\u{201C}\($0)\u{201D}" }.joined(separator: " and ")) in Shortcuts with a Set Focus action.",
                                      icon: "exclamationmark.triangle.fill", tint: DS.Palette.warning)
@@ -260,17 +261,17 @@ struct PomodoroSettingsSection: View {
                 SettingsDivider()
                 SettingsToggleRow("Keep timer visible in notch",
                                   subtitle: "The live countdown stays in the compact HUD, ahead of music and the Tray.",
-                                  anchor: "shelf.pomodoro.visible", isOn: $state.pomodoroKeepVisible)
+                                  anchor: "shelf.pomodoro.visible", isOn: $pomodoroSettings.keepVisible)
                 SettingsDivider()
                 SettingsToggleRow("Open on hover",
                                   subtitle: "Open the shelf the moment you hover the timer.",
-                                  anchor: "shelf.pomodoro.hover", isOn: $state.pomodoroHoverOpens)
+                                  anchor: "shelf.pomodoro.hover", isOn: $pomodoroSettings.hoverOpens)
                 SettingsDivider()
                 SettingsToggleRow("Momentum",
                                   subtitle: momentumSubtitle,
                                   help: "Counts the focus sessions you finish. A day with at least one keeps the streak going; missing a whole day starts it over. Only whole cycles count — a session you reset doesn't.",
-                                  anchor: "shelf.pomodoro.momentum", isOn: $state.pomodoroShowsMomentum)
-                if state.pomodoroShowsMomentum {
+                                  anchor: "shelf.pomodoro.momentum", isOn: $pomodoroSettings.showsMomentum)
+                if pomodoroSettings.showsMomentum {
                     SettingsDivider()
                     SettingsRow("Best streak", subtitle: "\(state.pomodoroMomentum.bestStreak) day\(state.pomodoroMomentum.bestStreak == 1 ? "" : "s")") {
                         Button("Reset Momentum…") { confirmsMomentumReset = true }
@@ -284,8 +285,8 @@ struct PomodoroSettingsSection: View {
                 }
             }
         }
-        .onAppear { if state.pomodoroFocusShortcuts { shortcuts.refresh() } }
-        .onChange(of: state.pomodoroFocusShortcuts) { _, on in if on { shortcuts.refresh() } }
+        .onAppear { if pomodoroSettings.focusShortcuts { shortcuts.refresh() } }
+        .onChange(of: pomodoroSettings.focusShortcuts) { _, on in if on { shortcuts.refresh() } }
     }
 
     /// "3 today · 5-day streak", or an invitation before the first session.
@@ -297,7 +298,7 @@ struct PomodoroSettingsSection: View {
 // MARK: - High Alert
 
 struct HighAlertSettingsSection: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var highAlertSettings = HighAlertSettings.shared
     @ObservedObject private var blocker = SleepBlockerService.shared
 
     var body: some View {
@@ -306,16 +307,18 @@ struct HighAlertSettingsSection: View {
             SettingsGroup {
                 SettingsRow("Mode", anchor: "shelf.highAlert.mode")
                 ChoiceTiles(HighAlertMode.allCases.map { .init($0, $0.title, icon: $0.icon) },
-                            selection: $state.highAlertMode)
-                SettingsNote(state.highAlertMode.summary).padding(.top, 8)
-                if state.highAlertMode == .lidClosed {
+                            selection: $highAlertSettings.mode)
+                SettingsNote(highAlertSettings.mode.summary).padding(.top, 8)
+                if highAlertSettings.mode == .lidClosed {
                     SettingsNote("Lid-closed High Alert runs \u{201C}pmset -a disablesleep 1\u{201D}, which asks for an administrator password when it starts and again when it stops. While it runs your Mac won't sleep with the lid closed — keep it ventilated and on power, and don't put it in a bag.",
                                  icon: "exclamationmark.triangle.fill", tint: DS.Palette.warning)
                         .padding(.top, 6)
                 }
                 SettingsDivider()
-                SettingsRow(blocker.isSystemSleepDisabled ? "System sleep disabled" : "System sleep enabled",
-                            subtitle: blocker.isSystemSleepDisabled ? "Closing the lid won't sleep this Mac." : "Put your Mac to sleep.",
+                SettingsRow("System sleep",
+                            subtitle: blocker.isSystemSleepDisabled
+                                ? "Disabled — closing the lid won't sleep this Mac."
+                                : "Enabled. Sleep Now puts this Mac to sleep.",
                             anchor: "shelf.highAlert.sleep") {
                     HStack {
                         if blocker.isSystemSleepDisabled {
@@ -333,7 +336,7 @@ struct HighAlertSettingsSection: View {
 // MARK: - Notes
 
 struct NotesSettingsSection: View {
-    @ObservedObject private var state = AppState.shared
+    @ObservedObject private var notesSettings = NotesSettings.shared
     @ObservedObject private var store = NotesStore.shared
 
     var body: some View {
@@ -342,8 +345,8 @@ struct NotesSettingsSection: View {
                 SettingsToggleRow("Sync with Apple Notes",
                                   subtitle: syncSubtitle,
                                   help: "Notes go to a \u{201C}Tama\u{201D} folder in Apple Notes' default account, and changes made there come back when Notes opens in the shelf. Needs permission to control Notes (Automation).",
-                                  anchor: "shelf.notes.sync", isOn: $state.notesAppleSync)
-                if state.notesAppleSync, case .unreachable = store.syncStatus {
+                                  anchor: "shelf.notes.sync", isOn: $notesSettings.appleSync)
+                if notesSettings.appleSync, case .unreachable = store.syncStatus {
                     SettingsDivider()
                     SettingsRow("Automation access", subtitle: "If Tama isn't allowed to control Notes, turn Notes on under Tama in Privacy & Security › Automation.",
                                 icon: "exclamationmark.triangle.fill") {
@@ -354,17 +357,17 @@ struct NotesSettingsSection: View {
                 SettingsDivider()
                 SettingsToggleRow("Show formatting toolbar",
                                   subtitle: "Bold, italic, underline, headings and lists under the editor.",
-                                  anchor: "shelf.notes.toolbar", isOn: $state.notesShowToolbar)
+                                  anchor: "shelf.notes.toolbar", isOn: $notesSettings.showToolbar)
                 SettingsDivider()
                 SettingsToggleRow("Grow canvas with longer notes",
                                   subtitle: "The shelf gets taller as a note does.",
-                                  anchor: "shelf.notes.grow", isOn: $state.notesGrowCanvas)
+                                  anchor: "shelf.notes.grow", isOn: $notesSettings.growCanvas)
             }
         }
     }
 
     private var syncSubtitle: String {
-        guard state.notesAppleSync else { return "Two-way sync with a \u{201C}Tama\u{201D} folder." }
+        guard notesSettings.appleSync else { return "Two-way sync with a \u{201C}Tama\u{201D} folder." }
         switch store.syncStatus {
         case .idle: return "Syncing with Apple Notes."
         case .syncing: return "Syncing…"

@@ -75,6 +75,8 @@ public final class NotificationHUDService: ObservableObject {
     @Published public private(set) var status: Status = .off
     /// Newest first, this session only (never written to disk).
     @Published public private(set) var recent: [MirroredNotification] = []
+    /// Mirrored notifications queued behind the banner on screen.
+    @Published public private(set) var pendingCount = 0
     /// A notification whose reply composer the console should open.
     @Published public var replyTargetID: Int64?
 
@@ -85,7 +87,9 @@ public final class NotificationHUDService: ObservableObject {
     private var walSource: DispatchSourceFileSystemObject?
     private var fallbackTimer: Timer?
     private var pendingQuery: DispatchWorkItem?
-    private var waiting: [MirroredNotification] = []
+    private var waiting: [MirroredNotification] = [] {
+        didSet { if pendingCount != waiting.count { pendingCount = waiting.count } }
+    }
     private var cancellables = Set<AnyCancellable>()
     private var storePath: String?
 
@@ -271,7 +275,7 @@ public final class NotificationHUDService: ObservableObject {
     // MARK: Showing
 
     var blockedApps: Set<String> {
-        Set(AppState.shared.notificationHUDBlockedApps.split(separator: "\n").map(String.init))
+        Set(NotificationHUDSettings.shared.blockedApps.split(separator: "\n").map(String.init))
     }
 
     private func receive(_ notifications: [MirroredNotification]) {
@@ -293,8 +297,8 @@ public final class NotificationHUDService: ObservableObject {
     private func presentNext() {
         let state = AppState.shared
         guard !waiting.isEmpty, state.activeNotification == nil else { return }
-        let duration = max(state.notificationHUDDuration, 2)
-        if state.notificationHUDBurst, waiting.count >= 3 {
+        let duration = max(NotificationHUDSettings.shared.duration, 2)
+        if NotificationHUDSettings.shared.burst, waiting.count >= 3 {
             let burst = waiting
             waiting.removeAll()
             let apps = Set(burst.map(\.bundleID))
@@ -307,12 +311,12 @@ public final class NotificationHUDService: ObservableObject {
             return
         }
         let next = waiting.removeFirst()
-        let preview = state.notificationHUDPreview
+        let preview = NotificationHUDSettings.shared.preview
         let notification = DroppyNotification(
             appName: Self.appName(for: next.bundleID),
             title: preview ? next.title : Self.appName(for: next.bundleID),
             message: preview ? next.preview : "New notification",
-            actionTitle: state.notificationHUDQuickReply && next.replyKind != .none ? "Reply" : nil,
+            actionTitle: NotificationHUDSettings.shared.quickReply && next.replyKind != .none ? "Reply" : nil,
             action: { NotificationHUDService.shared.beginReply(next.id) },
             sourceBundleID: next.bundleID, isMirrored: true)
         // Shorter while more are waiting, so a queue drains.
@@ -341,6 +345,12 @@ public final class NotificationHUDService: ObservableObject {
     /// Opens the Notifications console with the reply composer for this one.
     func beginReply(_ id: Int64) {
         replyTargetID = id
+        openConsole()
+    }
+
+    /// Opens the Notifications console (a burst from several apps has no
+    /// single app to open).
+    func openConsole() {
         let state = AppState.shared
         state.open(.widgets)
         state.activeDropletID = "notifications"
@@ -359,7 +369,7 @@ public final class NotificationHUDService: ObservableObject {
     public func setBlocked(_ bundleID: String, _ blocked: Bool) {
         var apps = blockedApps
         if blocked { apps.insert(bundleID) } else { apps.remove(bundleID) }
-        AppState.shared.notificationHUDBlockedApps = apps.sorted().joined(separator: "\n")
+        NotificationHUDSettings.shared.blockedApps = apps.sorted().joined(separator: "\n")
     }
 
     public func openFullDiskAccessSettings() {

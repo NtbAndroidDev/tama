@@ -189,7 +189,7 @@ public final class NotesStore: ObservableObject {
         pushWork[id] = nil
         scheduleSave()
         // Apple Notes keeps its own "Recently Deleted" for 30 days.
-        if AppState.shared.notesAppleSync, let appleID = removed.appleNoteID { deleteFromAppleNotes(appleID) }
+        if NotesSettings.shared.appleSync, let appleID = removed.appleNoteID { deleteFromAppleNotes(appleID) }
         AppState.shared.showNotification(appName: "Notes", title: "Note deleted", message: removed.title,
                                          icon: "trash.fill", actionTitle: "Undo") {
             let store = NotesStore.shared
@@ -235,7 +235,7 @@ public final class NotesStore: ObservableObject {
     // MARK: Apple Notes
 
     private func schedulePush(_ id: UUID) {
-        guard AppState.shared.notesAppleSync else { return }
+        guard NotesSettings.shared.appleSync else { return }
         pushWork[id]?.cancel()
         let work = DispatchWorkItem { [weak self] in
             self?.pushWork[id] = nil
@@ -283,7 +283,7 @@ public final class NotesStore: ObservableObject {
     /// they're newer, notes made there are imported, and ours that were never
     /// pushed go up.
     public func pullFromAppleNotes() {
-        guard AppState.shared.notesAppleSync, syncStatus != .syncing else { return }
+        guard NotesSettings.shared.appleSync, syncStatus != .syncing else { return }
         syncStatus = .syncing
         Task.detached(priority: .utility) {
             let result = AppleNotesScript.run(AppleNotesScript.pull, arguments: [])

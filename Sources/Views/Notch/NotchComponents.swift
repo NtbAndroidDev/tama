@@ -21,7 +21,7 @@ public enum NotchPalette {
     /// The music wave follows the accent: a lighter tint at the top of each
     /// bar to a deeper one at the bottom.
     @MainActor public static var waveColors: [Color] {
-        let accent = NSColor(AppState.shared.accentColor.color).usingColorSpace(.sRGB) ?? .systemBlue
+        let accent = NSColor(ThemeSettings.shared.accentColor.color).usingColorSpace(.sRGB) ?? .systemBlue
         let top = accent.blended(withFraction: 0.4, of: .white) ?? accent
         let bottom = accent.blended(withFraction: 0.35, of: .black) ?? accent
         return [Color(nsColor: top), Color(nsColor: accent), Color(nsColor: bottom)]
@@ -42,6 +42,7 @@ public struct WaveBars: View {
     @Environment(\.isIslandLayerVisible) private var isLayerVisible
     /// Observed so the bars retint as soon as the accent changes.
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var mediaSettings = MediaSettings.shared
 
     public init(isPlaying: Bool, bars: Int = 5, height: CGFloat = 12, barWidth: CGFloat = 2.4) {
         self.isPlaying = isPlaying
@@ -63,7 +64,7 @@ public struct WaveBars: View {
     /// Settings › HUDs › Visualizer: grey mono bars, or a ramp from the
     /// album art's colours (the accent while there is no art).
     private var colors: [Color] {
-        switch state.visualizerStyle {
+        switch mediaSettings.visualizerStyle {
         case .mono:
             return [Color.white.opacity(0.95), Color.white.opacity(0.75), Color.white.opacity(0.5)]
         case .gradient:
@@ -79,7 +80,7 @@ public struct WaveBars: View {
         // A hidden island layer stays mounted; it mustn't keep animating.
         guard isLayerVisible else { return .resting }
         // Settings › HUDs › Live audio visualizer: bars follow the real output.
-        return state.liveAudioVisualizer ? .live : .playing
+        return mediaSettings.liveAudioVisualizer ? .live : .playing
     }
 }
 

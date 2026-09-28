@@ -7,6 +7,7 @@ import SwiftUI
 /// shortcuts and history rules, clipboard actions, then excluded apps.
 struct ClipboardSettingsPage: View {
     @ObservedObject var state = AppState.shared
+    @ObservedObject private var clipboardSettings = ClipboardSettings.shared
     @ObservedObject private var privacy = ClipboardPrivacy.shared
     @ObservedObject private var permissions = PermissionService.shared
     @State private var imageBytes: Int64?
@@ -22,17 +23,15 @@ struct ClipboardSettingsPage: View {
         VStack(alignment: .leading, spacing: 24) {
             SettingsSection("Clipboard") {
                 SettingsGroup {
-                    SettingsRow("Clipboard manager", icon: "list.clipboard.fill",
-                                help: "Keeps a history of what you copy. The tiles below choose where the clipboard is offered: the menu bar and the shelf's right-click menu.",
-                                anchor: "clipboard.enable") {
-                        Toggle("Clipboard manager", isOn: $state.clipboardEnabled).labelsHidden().toggleStyle(.switch)
-                    }
+                    SettingsToggleRow("Clipboard manager", icon: "list.clipboard.fill",
+                                      help: "Keeps a history of what you copy. The tiles below choose where the clipboard is offered: the menu bar and the shelf's right-click menu.",
+                                      anchor: "clipboard.enable", isOn: $clipboardSettings.isEnabled)
                     ToggleTiles([
-                        ToggleTile("Menu bar", icon: "menubar.rectangle", isOn: $state.clipboardInMenuBar),
-                        ToggleTile("Shelf right-click menu", icon: "list.bullet.rectangle", isOn: $state.clipboardInShelfMenu),
+                        ToggleTile("Menu bar", icon: "menubar.rectangle", isOn: $clipboardSettings.inMenuBar),
+                        ToggleTile("Shelf right-click menu", icon: "list.bullet.rectangle", isOn: $clipboardSettings.inShelfMenu),
                     ], anchor: "clipboard.locations")
-                    .settingsDisabled(!state.clipboardEnabled)
-                    if state.clipboardEnabled {
+                    .settingsDisabled(!clipboardSettings.isEnabled)
+                    if clipboardSettings.isEnabled {
                         SettingsDivider()
                         SettingsRow(privacy.pauseDescription,
                                     icon: privacy.isPaused ? "pause.circle.fill" : "record.circle",
@@ -57,6 +56,10 @@ struct ClipboardSettingsPage: View {
                         SettingsNote("Clipboard is off: nothing you copy is recorded, and its shortcut points here.",
                                      icon: "info.circle")
                             .padding(.top, 10)
+                        // Turning the clipboard off keeps the saved history,
+                        // so it must still be clearable from here.
+                        SettingsDivider()
+                        clearHistoryRow
                     }
                 }
             }
@@ -66,11 +69,11 @@ struct ClipboardSettingsPage: View {
                 shortcuts
                 filtering
             }
-            .settingsDisabled(!state.clipboardEnabled)
+            .settingsDisabled(!clipboardSettings.isEnabled)
         }
         .task { imageBytes = await AppState.clipboardImageStorageBytes() }
         .onAppear {
-            limitIndex = Double(ClipboardHistoryLimit.index(of: state.clipboardHistoryLimit))
+            limitIndex = Double(ClipboardHistoryLimit.index(of: clipboardSettings.historyLimit))
             permissions.refresh()
         }
     }
@@ -86,24 +89,24 @@ struct ClipboardSettingsPage: View {
                 ChoiceTiles([
                     .init(ClipboardLayout.alpha, "Alpha clipboard", icon: "rectangle.stack.fill"),
                     .init(ClipboardLayout.legacy, "Legacy clipboard", icon: "list.bullet.rectangle.fill"),
-                ], selection: $state.clipboardLayout)
+                ], selection: $clipboardSettings.layout)
                 SettingsDivider()
                 SettingsToggleRow("Type filters", help: "Show the type-filter rail (All, Favorites, Text, Images, Links, Colors, Files).",
-                                  anchor: "clipboard.typeFilters", isOn: $state.clipboardTypeFilters)
+                                  anchor: "clipboard.typeFilters", isOn: $clipboardSettings.typeFilters)
                 SettingsDivider()
                 SettingsToggleRow("Favorites bar",
-                                  subtitle: state.clipboardLayout == .alpha
+                                  subtitle: clipboardSettings.layout == .alpha
                                       ? "Starred clips get a strip of chips above the cards."
                                       : "Only in the Alpha clipboard layout.",
                                   help: "Every favorite, one click away whatever the search or the pinboard tab is showing. A chip pastes its clip; its menu can take the favorite off the bar.",
-                                  anchor: "clipboard.favoritesBar", isOn: $state.clipboardFavoritesBar)
-                    .settingsDisabled(state.clipboardLayout != .alpha)
+                                  anchor: "clipboard.favoritesBar", isOn: $clipboardSettings.favoritesBar)
+                    .settingsDisabled(clipboardSettings.layout != .alpha)
                 SettingsDivider()
-                SettingsRow(state.clipboardLayout == .alpha ? "Alpha preview" : "Legacy preview",
+                SettingsRow(clipboardSettings.layout == .alpha ? "Alpha preview" : "Legacy preview",
                             help: "How the clipboard looks with these settings.")
-                ClipboardLayoutPreview(layout: state.clipboardLayout, showsFilters: state.clipboardTypeFilters)
+                ClipboardLayoutPreview(layout: clipboardSettings.layout, showsFilters: clipboardSettings.typeFilters)
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(state.clipboardLayout == .alpha ? "Preview of the Alpha clipboard" : "Preview of the Legacy clipboard")
+                    .accessibilityLabel(clipboardSettings.layout == .alpha ? "Preview of the Alpha clipboard" : "Preview of the Legacy clipboard")
                     .frame(height: 170)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .padding([.horizontal, .bottom], 12)
@@ -116,7 +119,7 @@ struct ClipboardSettingsPage: View {
     private var shortcuts: some View {
         SettingsSection("Shortcuts") {
             SettingsGroup {
-                ShortcutRecorderRow(.toggleClipboard, title: "Shortcut",
+                ShortcutRecorderRow(.toggleClipboard, title: "Open shortcut",
                                     help: "Open clipboard history from anywhere.", anchor: "clipboard.shortcut")
                 SettingsDivider()
                 ShortcutRecorderRow(.pasteFromClipboard, title: "Paste shortcut",
@@ -154,16 +157,16 @@ struct ClipboardSettingsPage: View {
                 SettingsDivider()
                 SettingsToggleRow("Clear history on quit",
                                   help: "Clears the history when Tama quits. Pinned items never expire from history.",
-                                  anchor: "clipboard.clearOnQuit", isOn: $state.clipboardClearOnQuit)
+                                  anchor: "clipboard.clearOnQuit", isOn: $clipboardSettings.clearOnQuit)
                 SettingsDivider()
                 SettingsToggleRow("Reject duplicates",
                                   help: "Ignore a copy that's already in history. Off, copying it again moves the existing clip back to the front.",
-                                  anchor: "clipboard.duplicates", isOn: $state.clipboardRejectDuplicates)
+                                  anchor: "clipboard.duplicates", isOn: $clipboardSettings.rejectDuplicates)
                 SettingsDivider()
                 SettingsToggleRow("Paste into the previous app",
                                   help: "Picking a clip pastes it into the app you were in. Off, it's only copied. ⌥↩ or ⇧↩ pastes as plain text.",
-                                  anchor: "clipboard.pasteIntoApp", isOn: $state.clipboardPasteIntoApp)
-                if state.clipboardPasteIntoApp {
+                                  anchor: "clipboard.pasteIntoApp", isOn: $clipboardSettings.pasteIntoApp)
+                if clipboardSettings.pasteIntoApp {
                     SettingsDivider()
                     PermissionRow(kind: .accessibility, status: permissions.status(.accessibility))
                         .settingsAnchor("clipboard.accessibility")
@@ -174,24 +177,28 @@ struct ClipboardSettingsPage: View {
                             help: "Tags: assign any number of tags to clips and filter by them. Copy + favorite: copy a clip and star it in one go. Auto-focus: focus the search bar automatically when the clipboard opens.",
                             anchor: "clipboard.actions")
                 ToggleTiles([
-                    ToggleTile("Tags", icon: "tag.fill", isOn: $state.clipboardTagsEnabled),
-                    ToggleTile("Copy + favorite", icon: "star.fill", isOn: $state.clipboardCopyFavorite),
-                    ToggleTile("Auto-focus", icon: "magnifyingglass", isOn: $state.clipboardAutoFocusSearch),
+                    ToggleTile("Tags", icon: "tag.fill", isOn: $clipboardSettings.tagsEnabled),
+                    ToggleTile("Copy + favorite", icon: "star.fill", isOn: $clipboardSettings.copyFavorite),
+                    ToggleTile("Auto-focus", icon: "magnifyingglass", isOn: $clipboardSettings.autoFocusSearch),
                 ])
-                if state.clipboardTagsEnabled {
+                if clipboardSettings.tagsEnabled {
                     tagsRow
                 }
                 SettingsDivider()
-                SettingsRow("Clear history", subtitle: "Removes every clip that isn't starred or on a pinboard.",
-                            anchor: "clipboard.clear") {
-                    Button("Clear…", role: .destructive) { isConfirmingClear = true }
-                }
-                .confirmationDialog("Clear clipboard history?", isPresented: $isConfirmingClear) {
-                    Button("Clear History", role: .destructive) { state.clearClipboardWithUndo() }
-                } message: {
-                    Text("Every clip that isn't starred or on a pinboard is removed. You can undo this from the banner that appears.")
-                }
+                clearHistoryRow
             }
+        }
+    }
+
+    private var clearHistoryRow: some View {
+        SettingsRow("Clear history", subtitle: "Removes every clip that isn't starred or on a pinboard.",
+                    anchor: "clipboard.clear") {
+            Button("Clear…", role: .destructive) { isConfirmingClear = true }
+        }
+        .confirmationDialog("Clear clipboard history?", isPresented: $isConfirmingClear) {
+            Button("Clear History", role: .destructive) { state.clearClipboardWithUndo() }
+        } message: {
+            Text("Every clip that isn't starred or on a pinboard is removed. You can undo this from the banner that appears.")
         }
     }
 
@@ -224,7 +231,7 @@ struct ClipboardSettingsPage: View {
     private func commitLimit() {
         let steps = ClipboardHistoryLimit.steps
         let value = steps[min(max(Int(limitIndex.rounded()), 0), steps.count - 1)]
-        if value != state.clipboardHistoryLimit { state.clipboardHistoryLimit = value }
+        if value != clipboardSettings.historyLimit { clipboardSettings.historyLimit = value }
     }
 
     /// The tags that exist, each removable, plus New Tag…

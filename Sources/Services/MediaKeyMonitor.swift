@@ -28,14 +28,14 @@ public final class MediaKeyMonitor: ObservableObject {
 
     /// The keys of each kind that are taken from macOS right now.
     public var interceptsVolume: Bool {
-        isIntercepting && AppState.shared.showVolumeHUD && AppState.shared.replaceSystemVolumeHUD
+        isIntercepting && HUDSettings.shared.showVolumeHUD && HUDSettings.shared.replaceSystemVolumeHUD
     }
     public var interceptsBrightness: Bool {
-        isIntercepting && AppState.shared.showBrightnessHUD && AppState.shared.replaceSystemBrightnessHUD
+        isIntercepting && HUDSettings.shared.showBrightnessHUD && HUDSettings.shared.replaceSystemBrightnessHUD
     }
     /// Settings › HUDs › Keyboard brightness keys: the backlight keys step it here.
     public var interceptsKeyboard: Bool {
-        isIntercepting && AppState.shared.keyboardBrightnessKeys && KeyboardBacklightService.shared.isAvailable
+        isIntercepting && HUDSettings.shared.keyboardBrightnessKeys && KeyboardBacklightService.shared.isAvailable
     }
 
     private var globalMonitor: Any?
@@ -111,12 +111,11 @@ public final class MediaKeyMonitor: ObservableObject {
 
     /// Installs or removes the event tap to match the settings and permission.
     public func syncInterception() {
-        let state = AppState.shared
         let wanted = globalMonitor != nil
-            && ((state.showVolumeHUD && state.replaceSystemVolumeHUD)
-                || (state.showBrightnessHUD && state.replaceSystemBrightnessHUD)
-                || state.keyboardBrightnessKeys
-                || state.playbackKeysMode != .system)
+            && ((HUDSettings.shared.showVolumeHUD && HUDSettings.shared.replaceSystemVolumeHUD)
+                || (HUDSettings.shared.showBrightnessHUD && HUDSettings.shared.replaceSystemBrightnessHUD)
+                || HUDSettings.shared.keyboardBrightnessKeys
+                || HUDSettings.shared.playbackKeysMode != .system)
         guard wanted else {
             removeTap()
             return
@@ -265,7 +264,7 @@ public final class MediaKeyMonitor: ObservableObject {
                 return takenPlaybackKeys.remove(data.code) != nil
             }
             if data.isRepeat { return takenPlaybackKeys.contains(data.code) }
-            guard AppState.shared.playbackKeysMode != .system else { return false }
+            guard HUDSettings.shared.playbackKeysMode != .system else { return false }
             let mapped: MediaKeys.Key = key == .play ? .playPause : (key == .next || key == .fast) ? .next : .previous
             guard MediaService.shared.handlePlaybackKey(mapped) else { return false }
             takenPlaybackKeys.insert(data.code)
@@ -278,7 +277,7 @@ public final class MediaKeyMonitor: ObservableObject {
                 // Off, or back to half when it's already off.
                 let target = (backlight.level ?? 0) > 0.01 ? 0 : 0.5
                 backlight.setBrightness(target)
-                if AppState.shared.showKeyboardBrightnessHUD { AppState.shared.showHUD(.keyboard, value: target) }
+                if HUDSettings.shared.showKeyboardBrightnessHUD { AppState.shared.showHUD(.keyboard, value: target) }
             } else {
                 backlight.step(up: key == .illuminationUp, fine: data.isFine)
             }
@@ -300,7 +299,7 @@ public final class MediaKeyMonitor: ObservableObject {
         let display = BrightnessService.shared
         let builtIn = display.builtInDisplay
         let fallback: BrightnessTarget = display.canSetBrightness(on: builtIn) ? .native(builtIn) : .system
-        guard AppState.shared.mediaKeyTarget == .underPointer else { return fallback }
+        guard HUDSettings.shared.mediaKeyTarget == .underPointer else { return fallback }
         let mouse = NSEvent.mouseLocation
         guard let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }),
               let id = screen.displayID else { return fallback }
@@ -333,7 +332,7 @@ public final class MediaKeyMonitor: ObservableObject {
     /// The volume "pop" (Settings › HUDs › Key sound). Holding ⇧ flips it,
     /// as it does for the macOS keys.
     private func playFeedback(inverted: Bool) {
-        guard AppState.shared.volumeKeySound != inverted else { return }
+        guard HUDSettings.shared.volumeKeySound != inverted else { return }
         Self.feedbackSound?.stop()
         Self.feedbackSound?.play()
     }
@@ -366,7 +365,7 @@ public final class MediaKeyMonitor: ObservableObject {
         switch key {
         case .soundUp, .soundDown, .mute:
             // Taken by the tap: already applied and shown.
-            guard !interceptsVolume, AppState.shared.showVolumeHUD else { return }
+            guard !interceptsVolume, HUDSettings.shared.showVolumeHUD else { return }
             // Let CoreAudio apply the change before reading it back.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 AudioOutputService.shared.presentHUD()

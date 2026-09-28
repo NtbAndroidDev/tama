@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 /// a row of clip cards, a Clipboard tab, your pinboards and your tags.
 public struct ClipboardShelfView: View {
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var clipboardSettings = ClipboardSettings.shared
     @ObservedObject private var privacy = ClipboardPrivacy.shared
     @ObservedObject private var browser = ClipboardBrowser.shared
     @State private var renamingID: UUID?
@@ -73,7 +74,7 @@ public struct ClipboardShelfView: View {
             if visible {
                 browser.select(clips.first?.id)
                 // Settings › Clipboard › Auto-focus: straight into search.
-                if state.clipboardAutoFocusSearch {
+                if clipboardSettings.autoFocusSearch {
                     browser.isSearching = true
                     searchFocused = true
                 } else {
@@ -90,7 +91,7 @@ public struct ClipboardShelfView: View {
     }
 
     /// Only the Alpha layout slides this shelf in.
-    private var isShown: Bool { hasAppeared && state.isClipboardVisible && state.clipboardLayout == .alpha }
+    private var isShown: Bool { hasAppeared && state.isClipboardVisible && clipboardSettings.layout == .alpha }
 
     // MARK: Favorites bar
 
@@ -101,7 +102,7 @@ public struct ClipboardShelfView: View {
 
     @ViewBuilder
     private var favoritesBar: some View {
-        if state.clipboardFavoritesBar, !favorites.isEmpty {
+        if clipboardSettings.favoritesBar, !favorites.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(favorites) { item in
@@ -197,7 +198,7 @@ public struct ClipboardShelfView: View {
                 browser.isSearching = true
                 searchFocused = true
             }
-            if state.clipboardTypeFilters {
+            if clipboardSettings.typeFilters {
                 filterRow
             }
             Rectangle().fill(Color.white.opacity(0.12)).frame(width: 1, height: 16).padding(.horizontal, 3)
@@ -240,7 +241,7 @@ public struct ClipboardShelfView: View {
             } else {
                 circleButton("plus", help: "Create pinboard") { isAddingBoard = true }
             }
-            if state.clipboardTagsEnabled, !state.clipboardTags.isEmpty {
+            if clipboardSettings.tagsEnabled, !state.clipboardTags.isEmpty {
                 Rectangle().fill(Color.white.opacity(0.12)).frame(width: 1, height: 16).padding(.horizontal, 3)
                 ForEach(state.clipboardTags) { tag in
                     tagTab(tag)
@@ -463,7 +464,7 @@ public struct ClipboardShelfView: View {
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 .help("Pin to a pinboard")
                 .accessibilityLabel("Pin to a pinboard")
-            if state.clipboardTagsEnabled {
+            if clipboardSettings.tagsEnabled {
                 Menu {
                     ForEach(state.clipboardTags) { tag in
                         Button(tag.name) { state.toggleClipTag(tag.name, on: ids) }
@@ -624,7 +625,7 @@ public struct ClipboardShelfView: View {
                                     keyboardFocused = true
                                 },
                                 boardTint: item.board.flatMap { board in state.pinboards.first(where: { $0.name == board })?.color },
-                                showsTags: state.clipboardTagsEnabled
+                                showsTags: clipboardSettings.tagsEnabled
                             )
                             .id(item.id)
                             .transition(DS.Motion.transition(reduceMotion, .scale(scale: 0.9).combined(with: .opacity)))

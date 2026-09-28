@@ -7,6 +7,7 @@ struct HighAlertConsoleView: View {
     // Observed directly: AppState doesn't forward the service's changes.
     @ObservedObject private var blocker = SleepBlockerService.shared
     @ObservedObject private var state = AppState.shared
+    @ObservedObject private var highAlertSettings = HighAlertSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -41,25 +42,25 @@ struct HighAlertConsoleView: View {
                 statusLine
                 Spacer(minLength: 0)
             } else {
-                RulerSlider(minutes: $state.highAlertMinutes, range: 5...1440)
+                RulerSlider(minutes: $highAlertSettings.minutes, range: 5...1440)
                 HStack(spacing: 10) {
                     RulerStartButton(title: blocker.isAuthorizing ? "Authorizing…" : "Start timer") {
-                        blocker.enable(durationSeconds: state.highAlertMinutes * 60, mode: state.highAlertMode)
+                        blocker.enable(durationSeconds: highAlertSettings.minutes * 60, mode: highAlertSettings.mode)
                         DroppyAudio.playTick()
                     }
                     .disabled(blocker.isAuthorizing)
-                    RulerRoundButton(state.highAlertMode.icon,
-                                     help: "\(state.highAlertMode.summary). Click to switch to \(state.highAlertMode.next.title).") {
-                        state.highAlertMode = state.highAlertMode.next
+                    RulerRoundButton(highAlertSettings.mode.icon,
+                                     help: "\(highAlertSettings.mode.summary). Click to switch to \(highAlertSettings.mode.next.title).") {
+                        highAlertSettings.mode = highAlertSettings.mode.next
                         DroppyAudio.playTick()
                     }
                     RulerRoundButton("infinity", help: "Keep awake indefinitely") {
-                        blocker.enable(durationSeconds: 0, mode: state.highAlertMode)
+                        blocker.enable(durationSeconds: 0, mode: highAlertSettings.mode)
                         DroppyAudio.playTick()
                     }
                     .disabled(blocker.isAuthorizing)
                     Spacer(minLength: 8)
-                    RulerClock(seconds: state.highAlertMinutes * 60)
+                    RulerClock(seconds: highAlertSettings.minutes * 60)
                 }
                 statusLine
             }
@@ -98,7 +99,7 @@ struct HighAlertConsoleView: View {
         if blocker.isSystemSleepDisabled {
             return "System sleep disabled — closing the lid won't sleep your Mac"
         }
-        if !blocker.isAwakeActive, state.highAlertMode == .lidClosed {
+        if !blocker.isAwakeActive, highAlertSettings.mode == .lidClosed {
             return "Lid Closed asks for your password and turns system sleep off until it stops"
         }
         return "System sleep enabled"
